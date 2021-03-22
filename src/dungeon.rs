@@ -48,7 +48,7 @@ impl Dungeon {
     }
 }
 
-/// See: http://roguebasin.roguelikedevelopment.org/index.php?title=Cellular_Automata_Method_for_Generating_Random_Cave-Like_Levels
+/// See http://roguebasin.roguelikedevelopment.org/index.php?title=Cellular_Automata_Method_for_Generating_Random_Cave-Like_Levels
 impl FloorBuilder {
     pub fn new(height: NonZeroUsize, width: NonZeroUsize) -> FloorBuilder {
         let mut floor = FloorBuilder::blank(height, width);
@@ -141,8 +141,10 @@ impl FloorBuilder {
     // flood fill to find the caves, then draw a path between the closest two empty spaces for every cave
     // somehow make sure all the caves are connected
     // use a hashmap of (x, y) => (x, y) for every cave connection, then do something with that?
-    // need to get the borders of the caves somehow
-    // whenever a wall is encountered, push it to a vec?
+    fn build_connections(&mut self, borders: Vec<Vec<(usize, usize)>>) {
+
+    }
+
     fn get_cave_borders(&self) -> Vec<Vec<(usize, usize)>> {
         let mut connections = HashMap::new();
         connections.insert((0usize, 0usize), (0usize, 0usize));
