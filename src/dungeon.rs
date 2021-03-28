@@ -1,19 +1,9 @@
-#![allow(clippy::dead_code)]
-// #![allow(dead_code)]
-
 use core::fmt;
 use noise::{Billow, MultiFractal, NoiseFn, Seedable};
 use pathfinding::prelude::astar;
-use petgraph::{
-    algo::kosaraju_scc,
-    dot::{Config, Dot},
-    graphmap::UnGraphMap,
-    Graph,
-};
+use petgraph::{algo::kosaraju_scc, graphmap::UnGraphMap};
 use std::{
     collections::{HashMap, HashSet, VecDeque},
-    fs::File,
-    io::Write,
     iter,
     num::NonZeroUsize,
     u128,
@@ -115,13 +105,7 @@ impl FloorBuilder {
                 self.noise_map[x][y] = (float.abs() * 10000.0).powi(2).floor() as u128;
 
                 // create a border around the map
-                if y == 0 {
-                    self.map[x][y] = Wall;
-                } else if x == 0 {
-                    self.map[x][y] = Wall;
-                } else if y == self.width.get() - 1 {
-                    self.map[x][y] = Wall;
-                } else if x == self.height.get() - 1 {
+                if (y == 0) || (x == 0) || (y == self.width.get()) || (x == self.height.get() - 1) {
                     self.map[x][y] = Wall;
                 }
                 // otherwise, make a wall some percent of the time
@@ -365,7 +349,7 @@ impl FloorBuilder {
                                 // dbg!(&border);
                             }
                         } else {
-                            if border.len() > 0 {
+                            if !border.is_empty() {
                                 // add the found cave to the collection of all caves
                                 // do some other fancy stuff maybe
                                 caves.push(border);
@@ -378,34 +362,6 @@ impl FloorBuilder {
         }
 
         caves
-    }
-
-    pub(crate) fn closest_empty_point_to_center(&self) {
-        let map_center_x = self.height.get() / 2;
-        let map_center_y = self.width.get() / 2;
-
-        if self.map[map_center_x][map_center_y] == Wall {
-            (map_center_x, map_center_y)
-        } else {
-            let mut distance: i64 = 1;
-            'outer: loop {
-                for i in -distance..=distance {
-                    for j in -distance..=distance {
-                        if i.abs() != distance && j.abs() != distance {
-                            continue;
-                        }
-
-                        if !self.is_wall(map_center_x as i64 + i, map_center_y as i64 + j) {
-                            break 'outer (
-                                (map_center_x as i64 + i) as usize,
-                                (map_center_y as i64 + j) as usize,
-                            );
-                        }
-                    }
-                }
-                distance += 1;
-            }
-        };
     }
 
     pub(crate) fn smoothen(&mut self, repeat: usize, create_new_walls: fn(usize) -> bool) {
@@ -436,12 +392,11 @@ impl FloorBuilder {
             if num_walls_1_away < 2 {
                 return Empty;
             }
-        } else {
-            if num_walls_1_away >= 5 {
-                return Wall;
-            }
+        } else if num_walls_1_away >= 5 {
+            return Wall;
         }
-        return Empty;
+
+        Empty
     }
 
     pub(crate) fn get_adjacent_walls(&self, point: Point, distance_x: i64, distance_y: i64) -> u8 {
@@ -454,14 +409,12 @@ impl FloorBuilder {
 
         for i_y in start_y..=end_y {
             for i_x in start_x..=end_x {
-                if !(i_x == point.x as i64 && i_y == point.y as i64) {
-                    if self.is_wall(i_x, i_y) {
-                        wall_counter += 1;
-                    }
+                if !(i_x == point.x as i64 && i_y == point.y as i64) && self.is_wall(i_x, i_y) {
+                    wall_counter += 1;
                 }
             }
         }
-        return wall_counter;
+        wall_counter
     }
 
     pub(crate) fn is_wall(&self, x: i64, y: i64) -> bool {
@@ -477,25 +430,24 @@ impl FloorBuilder {
         if self.map[x as usize][y as usize] == Empty {
             return false;
         }
-        return false;
+        false
     }
 
     pub(crate) fn is_out_of_bounds_or_border(&self, x: i64, y: i64) -> bool {
-        if x < 1 || y < 1 {
-            return true;
-        } else if x >= self.width.get() as i64 - 1 || y >= self.height.get() as i64 - 1 {
+        if (x < 1 || y < 1)
+            || (x >= self.width.get() as i64 - 1 || y >= self.height.get() as i64 - 1)
+        {
             return true;
         }
-        return false;
+        false
     }
 
     pub(crate) fn is_out_of_bounds(&self, x: i64, y: i64) -> bool {
-        if x < 0 || y < 0 {
-            return true;
-        } else if x > self.width.get() as i64 - 1 || y > self.height.get() as i64 - 1 {
+        if (x < 0 || y < 0) || (x > self.width.get() as i64 - 1 || y > self.height.get() as i64 - 1)
+        {
             return true;
         }
-        return false;
+        false
     }
 
     pub(crate) fn is_out_of_bounds_usize(&self, x: usize, y: usize) -> bool {
@@ -575,8 +527,6 @@ fn distance(from: Point, to: Point) -> f64 {
 
 #[cfg(test)]
 mod test_dungeon {
-    use petgraph::algo::min_spanning_tree;
-
     use super::*;
 
     #[test]
@@ -598,7 +548,7 @@ mod test_dungeon {
         );
         let formatted = random_filled_floor.pretty(vec![], vec![]);
 
-        // println!("{}", &formatted)
+        println!("{}", &formatted)
     }
 
     #[test]
@@ -619,7 +569,7 @@ mod test_dungeon {
                     .collect::<Vec<_>>()
             })
             .collect::<Vec<_>>();
-        // println!("caves = {:#?}", caves_pretty);
+        println!("caves = {:#?}", caves_pretty);
     }
 
     #[test]
@@ -632,11 +582,6 @@ mod test_dungeon {
         let connections = floor_builder.build_connections(caves);
         floor_builder.draw_connections(connections.clone());
         floor_builder.smoothen(7, |_| false);
-        // let _ = min_spanning_tree(&connections)
-        //     .inspect(|mst| {
-        //         dbg!(mst);
-        //     })
-        //     .collect::<Vec<_>>();
         println!(
             "{}",
             floor_builder.pretty(
@@ -648,5 +593,19 @@ mod test_dungeon {
                 vec![]
             )
         );
+    }
+
+    #[test]
+    fn test_border_connections() {
+        let mut floor_builder = FloorBuilder::new(
+            NonZeroUsize::new(50).unwrap(),
+            NonZeroUsize::new(100).unwrap(),
+        );
+        let caves = floor_builder.get_cave_borders();
+        let connections = floor_builder.build_connections(caves);
+        floor_builder.draw_connections(connections);
+        floor_builder.smoothen(7, |_| false);
+
+        assert!(floor_builder.get_cave_borders().len() == 1);
     }
 }
