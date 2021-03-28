@@ -1,0 +1,7 @@
+name       	bundle                  	lang  	verA 	verB 	maniA 	maniB 	asset_crc_A 	asset_crc_B
+023        	TATM_trainer            	es_ES 	14   	15   	2025  	2032  	f9336faa    	76ccb23c
+023        	TATM_wp_ph_Foil2_CR105  	es_ES 	10   	11   	2025  	2032  	fa9dcebe    	e8ab3ea9
+promo_swsh 	setIcons_CRR68          	en_US 	2    	3    	2025  	2032  	f690b77e    	6d2a6fd8
+171        	SWSH1_trainer_CRR69     	de_DE 	3    	4    	2025  	2032  	114d662e    	a3a0aa50
+215        	SWSH1_trainer_CRR69     	de_DE 	3    	4    	2025  	2032  	3d57f701    	57dbcf23
+171        	SWSH1_wp_ph_Foil2_CRR69 	de_DE 	4    	5    	2025  	2032  	8524e6e9    	b1292cbc

@@ -10,6 +10,7 @@ edition = "2018"
 rand = "0.8.3"
 noise = "0.7.0"
 pathfinding = "2.1.1"
+petgraph = "0.5.1"
 
 [dev-dependencies]
 criterion = { version = "0.3", features = ["html_reports"] }
