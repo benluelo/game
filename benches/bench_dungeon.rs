@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, SamplingMode};
-use game::dungeon::{Dungeon, DungeonType};
+use game::dungeon::{Blank, Dungeon, DungeonType, FloorBuilder, Point};
 use std::num::NonZeroUsize;
 
 fn bench_dungeon_generation(c: &mut Criterion) {
@@ -26,16 +26,26 @@ fn bench_dungeon_generation(c: &mut Criterion) {
             );
         })
     });
-    group.bench_function("500 by 500", |b| {
+    group.bench_function("50 by 50, 100 floors", |b| {
         b.iter(|| {
             let _ = Dungeon::new(
-                NonZeroUsize::new(black_box(500)).unwrap(),
-                NonZeroUsize::new(black_box(500)).unwrap(),
-                NonZeroUsize::new(10).unwrap(),
+                NonZeroUsize::new(black_box(50)).unwrap(),
+                NonZeroUsize::new(black_box(50)).unwrap(),
+                NonZeroUsize::new(100).unwrap(),
                 DungeonType::Cave,
             );
         })
     });
+    // group.bench_function("500 by 500", |b| {
+    //     b.iter(|| {
+    //         let _ = Dungeon::new(
+    //             NonZeroUsize::new(black_box(500)).unwrap(),
+    //             NonZeroUsize::new(black_box(500)).unwrap(),
+    //             NonZeroUsize::new(10).unwrap(),
+    //             DungeonType::Cave,
+    //         );
+    //     })
+    // });
     group.finish();
 }
 

@@ -2,7 +2,7 @@ use std::num::NonZeroUsize;
 
 use dungeon::DungeonType;
 
-use crate::dungeon::Dungeon;
+pub use crate::dungeon::Dungeon;
 
 pub mod dungeon;
 

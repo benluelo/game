@@ -15,10 +15,19 @@ ansi_term = "0.12"
 serde = { version = "1.0.125", features = ["derive"] }
 serde_derive = "1.0.125"
 serde_json = "1.0.64"
+rayon = "1.5.0"
+rmp-serde = "0.15.4"
 
 [dev-dependencies]
+serde_test = "1.0.125"
 criterion = { version = "0.3", features = ["html_reports"] }
 
 [[bench]]
 name = "bench_dungeon"
 harness = false
+[[bench]]
+name = "bench_get_adjacent_walls"
+harness = false
+
+[profile.bench]
+debug = true

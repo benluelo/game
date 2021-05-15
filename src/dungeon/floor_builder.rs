@@ -2,7 +2,8 @@ use ansi_term::ANSIStrings;
 use noise::{Billow, MultiFractal, NoiseFn, Seedable};
 use pathfinding::directed::astar::astar;
 use petgraph::{algo::kosaraju_scc, graphmap::UnGraphMap};
-use rand::{thread_rng, Rng};
+use rand::{prelude::StdRng, thread_rng, Rng, SeedableRng};
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     iter,
@@ -10,23 +11,23 @@ use std::{
 };
 
 use crate::dungeon::{
-    distance, floor_builder::floor_builder_state::*, wall_or_empty::DungeonTile, BorderId,
-    Connection, Point,
+    distance, floor_builder::floor_builder_state::*, dungeon_tile::DungeonTile, BorderId,
+    Connection, Floor, Point,
 };
 
-pub(self) mod floor_builder_state;
+pub mod floor_builder_state;
 
 /// Represents a floor of a dungeon.
-pub(crate) struct FloorBuilder<S: FloorBuilderState> {
+pub struct FloorBuilder<S: FloorBuilderState> {
     pub(crate) height: NonZeroUsize,
     pub(crate) width: NonZeroUsize,
-    pub(crate) map: Vec<Vec<DungeonTile>>,
+    pub map: Vec<Vec<DungeonTile>>,
     pub(crate) noise_map: Vec<Vec<u128>>,
     extra: S,
 }
 
 impl FloorBuilder<New> {
-    pub fn create(height: NonZeroUsize, width: NonZeroUsize) -> Vec<Vec<DungeonTile>> {
+    pub fn create(height: NonZeroUsize, width: NonZeroUsize) -> Floor {
         FloorBuilder::<Blank>::blank(height, width)
             .random_fill()
             .smoothen(7, |r| r < 4)
@@ -38,7 +39,7 @@ impl FloorBuilder<New> {
             .check_for_secret_passages()
             .draw(|index, size, _| {
                 if index == 0 || index == size {
-                    DungeonTile::SecretDoor
+                    DungeonTile::SecretDoor { requires_key: true }
                 } else {
                     DungeonTile::SecretPassage
                 }
@@ -48,14 +49,14 @@ impl FloorBuilder<New> {
 }
 
 impl FloorBuilder<Filled> {
-    fn finish(self) -> Vec<Vec<DungeonTile>> {
-        self.map
+    fn finish(self) -> Floor {
+        Floor(self.map)
     }
 }
 
 /// See http://roguebasin.roguelikedevelopment.org/index.php?title=Cellular_Automata_Method_for_Generating_Random_Cave-Like_Levels
 impl<S: FloorBuilderState> FloorBuilder<S> {
-    fn blank(height: NonZeroUsize, width: NonZeroUsize) -> FloorBuilder<Blank> {
+    pub fn blank(height: NonZeroUsize, width: NonZeroUsize) -> FloorBuilder<Blank> {
         FloorBuilder {
             height,
             width,
@@ -67,7 +68,7 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
 }
 
 impl FloorBuilder<Blank> {
-    fn random_fill(mut self) -> FloorBuilder<Filled> {
+    pub fn random_fill(mut self) -> FloorBuilder<Filled> {
         let mut rng = thread_rng();
 
         let noise = Billow::new().set_seed(rng.gen()).set_persistence(128.0);
@@ -153,13 +154,13 @@ impl FloorBuilder<Drawable> {
 
 impl FloorBuilder<HasConnections> {
     fn trace_connection_paths(self, width: usize) -> FloorBuilder<Drawable> {
-        let mut rng = thread_rng();
-
         let to_draw = self
             .extra
             .connections
-            .iter()
+            .par_iter()
             .map(|(&(_, from), &(_, to))| {
+                let mut rng = StdRng::from_entropy();
+
                 let astar_result = astar(
                     &from,
                     |&point| {
@@ -195,7 +196,7 @@ impl FloorBuilder<HasConnections> {
 
                 all_points.into_iter().chain(extra_points)
             })
-            .flatten()
+            .flatten_iter()
             .collect();
 
         FloorBuilder {
@@ -242,60 +243,80 @@ impl<'a> FloorBuilder<HasBorders> {
 
         loop {
             // loop through all the borders
-            for (current_id, border) in borders_with_ids.clone() {
-                let already_connected_ids =
-                    connections.neighbors(current_id).collect::<HashSet<_>>();
-                let connection = all_border_points
-                    .iter()
-                    // remove the points from the collection of all the border points the ones that are in the current border
-                    .filter(|(_, id)| *id != current_id)
-                    // remove all the points from the borders the current border is already connected to
-                    .filter(|(_, id)| !already_connected_ids.contains(id))
-                    .map(|&(point, id)| {
-                        // find the point that's closest to the current border
-                        border
-                            .clone()
-                            .into_iter()
-                            .map(move |border_point| Connection {
-                                distance: distance(point, border_point),
-                                from: (current_id, border_point),
-                                to: (id, point),
+            let connections_with_points_inner: HashMap<(BorderId, Point), (BorderId, Point)> =
+                borders_with_ids
+                    .clone()
+                    .filter_map(|(current_id, border)| {
+                        let already_connected_ids =
+                            connections.neighbors(current_id).collect::<HashSet<_>>();
+                        let connection = all_border_points
+                            .par_iter()
+                            // remove the points from the collection of all the border points the ones that are in the current border
+                            .filter(|(_, id)| *id != current_id)
+                            // remove all the points from the borders the current border is already connected to
+                            .filter(|(_, id)| !already_connected_ids.contains(id))
+                            .map(|&(point, id)| {
+                                // find the point that's closest to the current border
+                                border
+                                    .clone()
+                                    .par_iter()
+                                    .map(move |border_point| {
+                                        Some(Connection {
+                                            distance: distance(point, *border_point),
+                                            from: (current_id, *border_point),
+                                            to: (id, point),
+                                        })
+                                    })
+                                    .collect::<Vec<_>>()
                             })
-                    })
-                    .flatten()
-                    .reduce(|prev, curr| {
-                        if prev.distance < curr.distance {
-                            prev
-                        } else {
-                            curr
-                        }
-                    });
-                match connection {
-                    Some(conn) => {
-                        connections_with_points.insert(conn.to, conn.from);
-                        connections.add_edge(conn.to.0, conn.from.0, ());
-                    }
-                    None => {
-                        if connections.neighbors(current_id).count() == 0 {
-                            panic!(
-                                "disjointed cave\n{}",
-                                self.pretty(
-                                    all_border_points
-                                        .iter()
-                                        .filter(|(_, id)| *id == current_id)
-                                        .map(|(point, _)| *point)
-                                        .collect(),
-                                    connections_with_points
-                                        .iter()
-                                        .map(|i| vec![i.0 .1, i.1 .1])
-                                        .flatten()
-                                        .collect()
-                                )
+                            .flatten_iter()
+                            .reduce(
+                                || None,
+                                |prev, curr| match (prev, curr) {
+                                    (Some(prev), Some(curr)) => {
+                                        if prev.distance < curr.distance {
+                                            Some(prev)
+                                        } else {
+                                            Some(curr)
+                                        }
+                                    }
+                                    (Some(prev), None) => Some(prev),
+                                    (None, Some(curr)) => Some(curr),
+                                    (None, None) => None,
+                                },
                             );
+                        match connection {
+                            None => {
+                                if connections.neighbors(current_id).count() == 0 {
+                                    panic!(
+                                        "\n\ndisjointed cave\n{}",
+                                        self.pretty(
+                                            all_border_points
+                                                .iter()
+                                                .filter(|(_, id)| *id == current_id)
+                                                .map(|(point, _)| *point)
+                                                .collect(),
+                                            connections_with_points
+                                                .iter()
+                                                .map(|i| vec![i.0 .1, i.1 .1])
+                                                .flatten()
+                                                .collect()
+                                        )
+                                    );
+                                };
+                                None
+                            }
+                            Some(conn) => {
+                                // connections_with_points.insert(conn.to, conn.from);
+                                // connections.add_edge(conn.to.0, conn.from.0, ());
+                                Some((conn.to, conn.from))
+                            }
                         }
-                    }
-                }
-            }
+                    })
+                    .collect();
+
+            connections_with_points.extend(connections_with_points_inner);
+            connections.extend(connections_with_points.iter().map(|(k, v)| (k.0, v.0)));
             // println!("connections = {:#?}", connections_with_points);
             // File::create("/home/ben/codeprojects/game/dot.dot")
             //     .unwrap()
@@ -308,9 +329,7 @@ impl<'a> FloorBuilder<HasBorders> {
             //     )
             //     .unwrap();
             let sccs = kosaraju_scc(&connections);
-            if sccs.len() > 1 {
-                continue;
-            } else {
+            if !sccs.len() > 1 {
                 break FloorBuilder {
                     extra: HasConnections {
                         connections: connections_with_points,
@@ -320,7 +339,7 @@ impl<'a> FloorBuilder<HasBorders> {
                     map: self.map,
                     noise_map: self.noise_map,
                 };
-            }
+            };
         }
     }
 }
@@ -456,26 +475,39 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
         DungeonTile::Empty
     }
 
-    fn get_adjacent_walls(&self, point: Point, distance_x: i64, distance_y: i64) -> u8 {
-        let start_x = (point.x as i64) - distance_x;
-        let start_y = (point.y as i64) - distance_y;
-        let end_x = (point.x as i64) + distance_x;
-        let end_y = (point.y as i64) + distance_y;
+    pub fn get_adjacent_walls(&self, point: Point, distance_x: usize, distance_y: usize) -> usize {
+        let start_x = point.x.saturating_sub(distance_x);
+        let start_y = point.y.saturating_sub(distance_y);
+        let end_x = point.x.saturating_add(distance_x);
+        let end_y = point.y.saturating_add(distance_y);
 
-        let mut wall_counter = 0;
+        let mut counter = 0;
 
         for i_y in start_y..=end_y {
             for i_x in start_x..=end_x {
-                if !(i_x == point.x as i64 && i_y == point.y as i64) && self.is_wall(i_x, i_y) {
-                    wall_counter += 1;
+                if !(i_x == point.x && i_y == point.y) && self.is_wall(i_x as i64, i_y as i64) {
+                    counter += 1;
                 }
             }
         }
-        wall_counter
+        counter
+        // (start_y..=end_y)
+        //     .map(|i_y| {
+        //         (start_x..=end_x).map(move |i_x| {
+        //             if !(i_x == point.x as i64 && i_y == point.y as i64) && self.is_wall(i_x, i_y) {
+        //                 Some(())
+        //             } else {
+        //                 None
+        //             }
+        //         })
+        //     })
+        //     .flatten()
+        //     .filter(Option::is_some)
+        //     .count()
     }
 
     fn is_wall(&self, x: i64, y: i64) -> bool {
-        // Consider out-of-bound a wall
+        // Consider out-of-bounds a wall
         if self.is_out_of_bounds(x, y) {
             return true;
         }
@@ -534,11 +566,11 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
 
     pub(crate) fn pretty(&self, extra_points: Vec<Point>, extra_points2: Vec<Point>) -> String {
         self.map
-            .iter()
+            .par_iter()
             .enumerate()
             .map(|i| {
                 ANSIStrings(
-                    &i.1.iter()
+                    &i.1.par_iter()
                         .enumerate()
                         .map(|j| {
                             j.1.print(

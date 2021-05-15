@@ -30,11 +30,11 @@ pub(super) struct HasConnections {
 impl FloorBuilderState for HasConnections {}
 
 /// A blank floor builder, with all values in the floor map and the noise map set to their default.
-pub(super) struct Blank {}
+pub struct Blank {}
 impl FloorBuilderState for Blank {}
 
 // The final state of the floor builder.
-pub(super) struct Filled {}
+pub struct Filled {}
 impl FloorBuilderState for Filled {}
 impl Smoothable for Filled {}
 

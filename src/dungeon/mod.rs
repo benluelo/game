@@ -1,17 +1,19 @@
 mod floor_builder;
-mod wall_or_empty;
+pub mod dungeon_tile;
 use core::fmt;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use std::num::NonZeroUsize;
 
-use crate::dungeon::wall_or_empty::DungeonTile;
+pub use crate::dungeon::dungeon_tile::DungeonTile;
 
-use self::floor_builder::FloorBuilder;
+pub use self::floor_builder::floor_builder_state::Blank;
+pub use self::floor_builder::FloorBuilder;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub(crate) struct Point {
-    x: usize,
-    y: usize,
+pub struct Point {
+    pub x: usize,
+    pub y: usize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -144,9 +146,14 @@ impl Dungeon {
         Self {
             dungeon_type,
             floors: (0..floor_count.get())
-                .map(|_| Floor(FloorBuilder::create(height, width)))
+                .into_par_iter()
+                .map(|_| FloorBuilder::create(height, width))
                 .collect(),
         }
+    }
+
+    pub fn to_json(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string_pretty(self)
     }
 }
 
@@ -175,8 +182,9 @@ mod test_dungeon {
         );
 
         std::fs::write(
-            "./test.json",
-            serde_json::to_string_pretty(&dungeon).unwrap(),
+            "./test",
+            rmp_serde::to_vec(&dungeon).unwrap()
+            // serde_json::to_string_pretty(&dungeon).unwrap(),
         )
         .unwrap();
     }
