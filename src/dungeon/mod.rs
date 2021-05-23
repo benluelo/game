@@ -1,9 +1,9 @@
-mod floor_builder;
 pub mod dungeon_tile;
+mod floor_builder;
 use core::fmt;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
-use std::num::NonZeroUsize;
+use std::{num::NonZeroUsize, usize};
 
 pub use crate::dungeon::dungeon_tile::DungeonTile;
 
@@ -39,71 +39,89 @@ pub struct Dungeon {
     pub floors: Vec<Floor>,
 }
 
-// impl Dungeon<'_> {
-//     pub fn into_binary(self) -> Vec<u8> {
-//         // first byte is the dungeon type
-//         let mut bytes = vec![self.dungeon_type as u8];
+impl Dungeon {
+    // pub fn to_gif(&mut self) -> () {
+    //     use gif::{Encoder, Frame, Repeat};
+    //     use std::borrow::Cow;
+    //     use std::fs::File;
 
-//         // now add the floors, separated by the FloorEnd control byte
-//         let iter = self
-//             .floors
-//             .iter()
-//             .map(|floor| {
-//                 floor
-//                     .iter()
-//                     .map(|columns| {
-//                         columns
-//                             .iter()
-//                             .map(|tile| *tile as u8)
-//                             .chain(std::iter::once(BinaryDungeonControlByte::FloorRowEnd as u8))
-//                     })
-//                     .flatten()
-//                     .chain(std::iter::once(BinaryDungeonControlByte::FloorEnd as u8))
-//             })
-//             .flatten();
-//         bytes.extend(iter);
+    //     let color_map = &[0xFF, 0xFF, 0xFF, 0, 0, 0];
 
-//         bytes
-//     }
+    //     let mut image = File::create("tests/samples/beacon.gif").unwrap();
+    //     let mut encoder = Encoder::new(&mut image, width, height, color_map).unwrap();
+    //     encoder.set_repeat(Repeat::Infinite).unwrap();
+    //     for floor in &self.floors {
+    //         let mut frame = Frame::default();
+    //         frame.width = floor.width;
+    //         frame.height = floor.height;
+    //         frame.buffer = Cow::Borrowed(&*state);
+    //         encoder.write_frame(&frame).unwrap();
+    //     }
+    // }
+    // pub fn into_binary(self) -> Vec<u8> {
+    //     // first byte is the dungeon type
+    //     let mut bytes = vec![self.dungeon_type as u8];
 
-//     pub fn from_binary(bytes: Vec<u8>) -> Result<Self, DungeonDecodeError> {
-//         let mut bytes = bytes.into_iter();
-//         let dungeon_type = bytes
-//             .next()
-//             .map(TryInto::<DungeonType>::try_into)
-//             .ok_or(DungeonDecodeError::UnexpectedEndOfBytes)??;
+    //     // now add the floors, separated by the FloorEnd control byte
+    //     let iter = self
+    //         .floors
+    //         .iter()
+    //         .map(|floor| {
+    //             floor
+    //                 .iter()
+    //                 .map(|columns| {
+    //                     columns
+    //                         .iter()
+    //                         .map(|tile| *tile as u8)
+    //                         .chain(std::iter::once(BinaryDungeonControlByte::FloorRowEnd as u8))
+    //                 })
+    //                 .flatten()
+    //                 .chain(std::iter::once(BinaryDungeonControlByte::FloorEnd as u8))
+    //         })
+    //         .flatten();
+    //     bytes.extend(iter);
 
-//         let mut floors: Vec<Floor> = vec![];
+    //     bytes
+    // }
 
-//         loop {
-//             let mut floor_bytes = bytes
-//                 .by_ref()
-//                 .take_while(|b| *b != BinaryDungeonControlByte::FloorEnd as u8);
-//             let mut rows = vec![];
+    // pub fn from_binary(bytes: Vec<u8>) -> Result<Self, DungeonDecodeError> {
+    //     let mut bytes = bytes.into_iter();
+    //     let dungeon_type = bytes
+    //         .next()
+    //         .map(TryInto::<DungeonType>::try_into)
+    //         .ok_or(DungeonDecodeError::UnexpectedEndOfBytes)??;
 
-//             loop {
-//                 let row = floor_bytes
-//                     .by_ref()
-//                     .take_while(|b| *b != BinaryDungeonControlByte::FloorRowEnd as u8)
-//                     .map(TryInto::<DungeonTile>::try_into)
-//                     .collect::<Result<Vec<_>, _>>()?;
-//                 if row.is_empty() {
-//                     break;
-//                 }
-//                 rows.push(row.to_owned());
-//             }
-//             if rows.is_empty() {
-//                 break;
-//             }
-//             floors.push(Floor(rows))
-//         }
+    //     let mut floors: Vec<Floor> = vec![];
 
-//         Ok(Dungeon {
-//             dungeon_type,
-//             floors,
-//         })
-//     }
-// }
+    //     loop {
+    //         let mut floor_bytes = bytes
+    //             .by_ref()
+    //             .take_while(|b| *b != BinaryDungeonControlByte::FloorEnd as u8);
+    //         let mut rows = vec![];
+
+    //         loop {
+    //             let row = floor_bytes
+    //                 .by_ref()
+    //                 .take_while(|b| *b != BinaryDungeonControlByte::FloorRowEnd as u8)
+    //                 .map(TryInto::<DungeonTile>::try_into)
+    //                 .collect::<Result<Vec<_>, _>>()?;
+    //             if row.is_empty() {
+    //                 break;
+    //             }
+    //             rows.push(row.to_owned());
+    //         }
+    //         if rows.is_empty() {
+    //             break;
+    //         }
+    //         floors.push(Floor(rows))
+    //     }
+
+    //     Ok(Dungeon {
+    //         dungeon_type,
+    //         floors,
+    //     })
+    // }
+}
 
 // #[test]
 // fn test_dungeon_decoding() {
@@ -134,12 +152,22 @@ pub struct Dungeon {
 // }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Floor(Vec<Vec<DungeonTile>>);
+pub struct Floor {
+    width: usize,
+    height: usize,
+    data: Vec<DungeonTile>,
+}
+
+impl Floor {
+    pub fn new(width: usize, height: usize) -> Self {
+        FloorBuilder::create(height, width)
+    }
+}
 
 impl Dungeon {
     pub fn new(
-        height: NonZeroUsize,
-        width: NonZeroUsize,
+        height: usize,
+        width: usize,
         floor_count: NonZeroUsize,
         dungeon_type: DungeonType,
     ) -> Self {
@@ -170,23 +198,27 @@ fn distance(from: Point, to: Point) -> f64 {
 
 #[cfg(test)]
 mod test_dungeon {
+    use std::{fs, mem};
+
     use super::*;
 
     #[test]
     fn test_serialize() {
-        let dungeon = Dungeon::new(
-            NonZeroUsize::new(100).unwrap(),
-            NonZeroUsize::new(100).unwrap(),
-            NonZeroUsize::new(10).unwrap(),
-            DungeonType::Cave,
-        );
+        let dungeon = Dungeon::new(50, 50, NonZeroUsize::new(10).unwrap(), DungeonType::Cave);
 
-        std::fs::write(
-            "./test",
-            rmp_serde::to_vec(&dungeon).unwrap()
-            // serde_json::to_string_pretty(&dungeon).unwrap(),
-        )
-        .unwrap();
+        let contents = rmp_serde::to_vec(&dungeon).unwrap();
+
+        dbg!(contents.len() * mem::size_of::<u8>());
+
+        fs::write("./test.mp", &contents).unwrap();
+
+        let contents_json = serde_json::to_string(&dungeon).unwrap();
+
+        dbg!(contents_json.len() * mem::size_of::<u8>());
+
+        fs::write("./test.json", contents_json).unwrap();
+
+        rmp_serde::from_read_ref::<_, Dungeon>(&contents).unwrap();
     }
 
     //     #[test]

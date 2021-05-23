@@ -1,3 +1,7 @@
+use crate::dungeon::{
+    distance, dungeon_tile::DungeonTile, floor_builder::floor_builder_state::*, BorderId,
+    Connection, Floor, Point,
+};
 use ansi_term::ANSIStrings;
 use noise::{Billow, MultiFractal, NoiseFn, Seedable};
 use pathfinding::directed::astar::astar;
@@ -7,27 +11,35 @@ use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIter
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     iter,
-    num::NonZeroUsize,
-};
-
-use crate::dungeon::{
-    distance, floor_builder::floor_builder_state::*, dungeon_tile::DungeonTile, BorderId,
-    Connection, Floor, Point,
 };
 
 pub mod floor_builder_state;
 
+pub const MIN_FLOOR_SIZE: usize = 10;
+
 /// Represents a floor of a dungeon.
 pub struct FloorBuilder<S: FloorBuilderState> {
-    pub(crate) height: NonZeroUsize,
-    pub(crate) width: NonZeroUsize,
-    pub map: Vec<Vec<DungeonTile>>,
-    pub(crate) noise_map: Vec<Vec<u128>>,
+    pub(crate) height: usize,
+    pub(crate) width: usize,
+    pub(crate) map: Vec<DungeonTile>,
+    pub(crate) noise_map: Vec<u128>,
     extra: S,
 }
 
 impl FloorBuilder<New> {
-    pub fn create(height: NonZeroUsize, width: NonZeroUsize) -> Floor {
+    pub(crate) fn create(height: usize, width: usize) -> Floor {
+        assert!(
+            height >= MIN_FLOOR_SIZE,
+            "floor height too small: {}; minimum is {}",
+            height,
+            MIN_FLOOR_SIZE
+        );
+        assert!(
+            width >= MIN_FLOOR_SIZE,
+            "floor width too small: {}; minimum is {}",
+            width,
+            MIN_FLOOR_SIZE
+        );
         FloorBuilder::<Blank>::blank(height, width)
             .random_fill()
             .smoothen(7, |r| r < 4)
@@ -50,18 +62,22 @@ impl FloorBuilder<New> {
 
 impl FloorBuilder<Filled> {
     fn finish(self) -> Floor {
-        Floor(self.map)
+        Floor {
+            height: self.height,
+            width: self.width,
+            data: self.map,
+        }
     }
 }
 
 /// See http://roguebasin.roguelikedevelopment.org/index.php?title=Cellular_Automata_Method_for_Generating_Random_Cave-Like_Levels
 impl<S: FloorBuilderState> FloorBuilder<S> {
-    pub fn blank(height: NonZeroUsize, width: NonZeroUsize) -> FloorBuilder<Blank> {
+    pub fn blank(height: usize, width: usize) -> FloorBuilder<Blank> {
         FloorBuilder {
             height,
             width,
-            map: vec![vec![Default::default(); height.get()]; width.get()],
-            noise_map: vec![vec![Default::default(); height.get()]; width.get()],
+            map: vec![Default::default(); height * width],
+            noise_map: vec![Default::default(); height * width],
             extra: Blank {},
         }
     }
@@ -74,26 +90,28 @@ impl FloorBuilder<Blank> {
         let noise = Billow::new().set_seed(rng.gen()).set_persistence(128.0);
 
         // build initial maps (walls and noise)
-        for x in 0..self.width.get() {
-            for y in 0..self.height.get() {
+        for x in 0..self.width {
+            for y in 0..self.height {
                 let point = Point { x, y };
                 let float = noise.get([
-                    (y as f64 / self.width.get() as f64) + 0.1,
-                    (x as f64 / self.height.get() as f64) + 0.1,
+                    (y as f64 / self.width as f64) + 0.1,
+                    (x as f64 / self.height as f64) + 0.1,
                 ]) + 0.001;
-                *self.noise_map.at_mut(point) = (float.abs() * 10000.0).powi(2).floor() as u128;
+                *self.noise_map.at_mut(point, self.height, self.width) =
+                    (float.abs() * 10000.0).powi(2).floor() as u128;
 
                 // create a border around the map
-                if (y == 0) || (x == 0) || (y == self.width.get()) || (x == self.height.get() - 1) {
-                    *self.map.at_mut(point) = DungeonTile::Wall;
+                if (y == 0) || (x == 0) || (y == self.width) || (x == self.height - 1) {
+                    *self.map.at_mut(point, self.height, self.width) = DungeonTile::Wall;
                 }
                 // otherwise, make a wall some percent of the time
                 else {
-                    *self.map.at_mut(point) = if 52 >= rng.gen_range(0..101) {
-                        DungeonTile::Wall
-                    } else {
-                        DungeonTile::Empty
-                    }
+                    *self.map.at_mut(point, self.height, self.width) =
+                        if 52 >= rng.gen_range(0..101) {
+                            DungeonTile::Wall
+                        } else {
+                            DungeonTile::Empty
+                        }
                 }
             }
         }
@@ -101,14 +119,14 @@ impl FloorBuilder<Blank> {
         // ANCHOR: astar
         // find path through noise map and apply path to walls map
         let goal = Point {
-            x: self.width.get() - 4,
-            y: self.height.get() - 4,
+            x: self.width - 4,
+            y: self.height - 4,
         };
         let astar_result = astar(
             &Point { x: 4, y: 4 },
             |&point| {
                 self.get_legal_neighbors(point)
-                    .map(|p| (p, *self.noise_map.at(p)))
+                    .map(|p| (p, *self.noise_map.at(p, self.height, self.width)))
             },
             |_| 0,
             |&point| !self.is_out_of_bounds_usize(point.x, point.y) && point == goal,
@@ -116,12 +134,12 @@ impl FloorBuilder<Blank> {
         .expect("no path found");
 
         for &point in &astar_result.0 {
-            *self.map.at_mut(point) = DungeonTile::Empty;
+            *self.map.at_mut(point, self.height, self.width) = DungeonTile::Empty;
             for neighbor in self
                 .get_legal_neighbors_down_and_right(point)
                 .collect::<Vec<_>>()
             {
-                *self.map.at_mut(neighbor) = DungeonTile::Empty;
+                *self.map.at_mut(neighbor, self.height, self.width) = DungeonTile::Empty;
             }
         }
 
@@ -139,7 +157,7 @@ impl FloorBuilder<Drawable> {
     fn draw(mut self, draw_with: fn(usize, usize, Point) -> DungeonTile) -> FloorBuilder<Filled> {
         let size = self.extra.to_draw.len() + 1;
         for (index, point) in self.extra.to_draw.into_iter().enumerate() {
-            *self.map.at_mut(point) = draw_with(index, size, point)
+            *self.map.at_mut(point, self.height, self.width) = draw_with(index, size, point)
         }
 
         FloorBuilder {
@@ -153,7 +171,7 @@ impl FloorBuilder<Drawable> {
 }
 
 impl FloorBuilder<HasConnections> {
-    fn trace_connection_paths(self, width: usize) -> FloorBuilder<Drawable> {
+    fn trace_connection_paths(self, _width: usize) -> FloorBuilder<Drawable> {
         let to_draw = self
             .extra
             .connections
@@ -165,7 +183,7 @@ impl FloorBuilder<HasConnections> {
                     &from,
                     |&point| {
                         self.get_legal_neighbors(point)
-                            .map(|p| (p, *self.noise_map.at(p)))
+                            .map(|p| (p, *self.noise_map.at(p, self.height, self.width)))
                     },
                     |_| 1,
                     |&point| !self.is_out_of_bounds_usize(point.x, point.y) && (point == to),
@@ -175,7 +193,7 @@ impl FloorBuilder<HasConnections> {
                 let mut all_points = vec![];
 
                 for point in astar_result.0 {
-                    if self.map.at(point).is_empty() {
+                    if self.map.at(point, self.height, self.width).is_empty() {
                         break;
                     }
                     all_points.push(point);
@@ -249,7 +267,7 @@ impl<'a> FloorBuilder<HasBorders> {
                     .filter_map(|(current_id, border)| {
                         let already_connected_ids =
                             connections.neighbors(current_id).collect::<HashSet<_>>();
-                        let connection = all_border_points
+                        let connection: Option<Connection> = all_border_points
                             .par_iter()
                             // remove the points from the collection of all the border points the ones that are in the current border
                             .filter(|(_, id)| *id != current_id)
@@ -285,6 +303,7 @@ impl<'a> FloorBuilder<HasBorders> {
                                     (None, None) => None,
                                 },
                             );
+
                         match connection {
                             None => {
                                 if connections.neighbors(current_id).count() == 0 {
@@ -346,24 +365,24 @@ impl<'a> FloorBuilder<HasBorders> {
 
 impl<'a> FloorBuilder<Smoothed> {
     fn get_cave_borders(self) -> FloorBuilder<HasBorders> {
-        let mut already_visited = vec![vec![false; self.height.get()]; self.width.get()];
+        let mut already_visited = vec![false; self.height * self.width];
         // self.closest_empty_point_to_center();
 
         let mut borders = vec![];
 
         // loop through the entire map
-        for x in 0..self.width.get() {
-            'y: for y in 0..self.height.get() {
+        for x in 0..self.width {
+            'y: for y in 0..self.height {
                 let point = Point { x, y };
                 // if the point has already been visited (by either the main loop or the cave searching) then continue looping through the map
-                if *already_visited.at(point) {
+                if *already_visited.at(point, self.height, self.width) {
                     continue 'y;
                 }
                 // otherwise, mark the point as visited
-                *already_visited.at_mut(point) = true;
+                *already_visited.at_mut(point, self.height, self.width) = true;
 
                 // if there's an empty space at the point, BFS to find the border of the cave (no diagonals)
-                if self.map.at(point).is_empty() {
+                if self.map.at(point, self.height, self.width).is_empty() {
                     let mut border = HashSet::new();
 
                     let mut queue = self
@@ -374,11 +393,11 @@ impl<'a> FloorBuilder<Smoothed> {
                         if let Some(point) = queue.pop_front() {
                             // if point is empty, mark it as visited and then add all of it's
                             // legal neighbors to the queue
-                            if self.map.at(point).is_empty() {
-                                if *already_visited.at(point) {
+                            if self.map.at(point, self.height, self.width).is_empty() {
+                                if *already_visited.at(point, self.height, self.width) {
                                     continue;
                                 }
-                                *already_visited.at_mut(point) = true;
+                                *already_visited.at_mut(point, self.height, self.width) = true;
                                 self.get_legal_neighbors(point)
                                     .for_each(|p| queue.push_back(p));
                             } else {
@@ -436,10 +455,11 @@ impl<S: Smoothable> FloorBuilder<S> {
         create_new_walls: fn(usize) -> bool,
     ) -> FloorBuilder<Smoothed> {
         for r in 0..repeat {
-            for x in 0..self.width.get() {
-                for y in 0..self.height.get() {
+            for x in 0..self.width {
+                for y in 0..self.height {
                     let point = Point { x, y };
-                    *self.map.at_mut(point) = self.place_wall_logic(point, create_new_walls(r));
+                    *self.map.at_mut(point, self.height, self.width) =
+                        self.place_wall_logic(point, create_new_walls(r));
                 }
             }
         }
@@ -458,7 +478,7 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
     fn place_wall_logic(&self, point: Point, create_new_walls: bool) -> DungeonTile {
         let num_walls_1_away = self.get_adjacent_walls(point, 1, 1);
 
-        if self.map.at(point).is_wall() {
+        if self.map.at(point, self.height, self.width).is_wall() {
             if num_walls_1_away >= 4 {
                 return DungeonTile::Wall;
             }
@@ -512,22 +532,44 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
             return true;
         }
 
-        if self.map[x as usize][y as usize].is_wall() {
+        if self
+            .map
+            .at(
+                Point {
+                    x: x as usize,
+                    y: y as usize,
+                },
+                self.height,
+                self.width,
+            )
+            .is_wall()
+        {
             return true;
         }
 
-        if self.map[x as usize][y as usize].is_wall() {
+        if self
+            .map
+            .at(
+                Point {
+                    x: x as usize,
+                    y: y as usize,
+                },
+                self.height,
+                self.width,
+            )
+            .is_wall()
+        {
             return false;
         }
         false
     }
 
     fn is_out_of_bounds_or_border(&self, x: i64, y: i64) -> bool {
-        (x < 1 || y < 1) || (x >= self.width.get() as i64 - 1 || y >= self.height.get() as i64 - 1)
+        (x < 1 || y < 1) || (x >= self.width as i64 - 1 || y >= self.height as i64 - 1)
     }
 
     fn is_out_of_bounds(&self, x: i64, y: i64) -> bool {
-        (x < 0 || y < 0) || (x > self.width.get() as i64 - 1 || y > self.height.get() as i64 - 1)
+        (x < 0 || y < 0) || (x > self.width as i64 - 1 || y > self.height as i64 - 1)
     }
 
     fn is_out_of_bounds_usize(&self, x: usize, y: usize) -> bool {
@@ -567,6 +609,7 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
     pub(crate) fn pretty(&self, extra_points: Vec<Point>, extra_points2: Vec<Point>) -> String {
         self.map
             .par_iter()
+            .chunks(self.height)
             .enumerate()
             .map(|i| {
                 ANSIStrings(
@@ -589,8 +632,8 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
 
 trait PointIndex<T> {
     type Output;
-    fn at(&self, point: Point) -> &Self::Output;
-    fn at_mut(&mut self, point: Point) -> &mut Self::Output;
+    fn at(&self, point: Point, height: usize, width: usize) -> &Self::Output;
+    fn at_mut(&mut self, point: Point, height: usize, width: usize) -> &mut Self::Output;
 }
 
 // impl<'a, T> PointIndex<T> for &'a mut [&'a mut [T]] {
@@ -605,14 +648,26 @@ trait PointIndex<T> {
 //     }
 // }
 
-impl<T> PointIndex<T> for Vec<Vec<T>> {
+// impl<T> PointIndex<T> for Vec<Vec<T>> {
+//     type Output = T;
+
+//     fn at(&self, point: Point) -> &Self::Output {
+//         &self[point.x][point.y]
+//     }
+
+//     fn at_mut(&mut self, point: Point) -> &mut Self::Output {
+//         &mut self[point.x][point.y]
+//     }
+// }
+
+impl<T> PointIndex<T> for Vec<T> {
     type Output = T;
 
-    fn at(&self, point: Point) -> &Self::Output {
-        &self[point.x][point.y]
+    fn at(&self, point: Point, height: usize, width: usize) -> &Self::Output {
+        &self[point.x * height + point.y]
     }
 
-    fn at_mut(&mut self, point: Point) -> &mut Self::Output {
-        &mut self[point.x][point.y]
+    fn at_mut(&mut self, point: Point, height: usize, width: usize) -> &mut Self::Output {
+        &mut self[point.x * height + point.y]
     }
 }

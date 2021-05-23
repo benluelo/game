@@ -9,8 +9,8 @@ fn bench_dungeon_generation(c: &mut Criterion) {
     group.bench_function("50 by 100", |b| {
         b.iter(|| {
             let _ = Dungeon::new(
-                NonZeroUsize::new(black_box(50)).unwrap(),
-                NonZeroUsize::new(black_box(100)).unwrap(),
+                black_box(50),
+                black_box(100),
                 NonZeroUsize::new(10).unwrap(),
                 DungeonType::Cave,
             );
@@ -19,8 +19,8 @@ fn bench_dungeon_generation(c: &mut Criterion) {
     group.bench_function("100 by 200", |b| {
         b.iter(|| {
             let _ = Dungeon::new(
-                NonZeroUsize::new(black_box(100)).unwrap(),
-                NonZeroUsize::new(black_box(200)).unwrap(),
+                black_box(100),
+                black_box(200),
                 NonZeroUsize::new(10).unwrap(),
                 DungeonType::Cave,
             );
@@ -29,8 +29,8 @@ fn bench_dungeon_generation(c: &mut Criterion) {
     group.bench_function("50 by 50, 100 floors", |b| {
         b.iter(|| {
             let _ = Dungeon::new(
-                NonZeroUsize::new(black_box(50)).unwrap(),
-                NonZeroUsize::new(black_box(50)).unwrap(),
+                black_box(50),
+                black_box(50),
                 NonZeroUsize::new(100).unwrap(),
                 DungeonType::Cave,
             );

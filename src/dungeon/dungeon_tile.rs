@@ -2,22 +2,47 @@ use ansi_term::{ANSIString, Colour::Green, Style};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
+// #[serde(untagged)]
 pub enum DungeonTile {
     // #[serde(with = "custom_serde::empty")]
+    // #[serde(rename = "0")]
     Empty,
     // #[serde(with = "custom_serde::wall")]
+    // #[serde(rename = "1")]
     Wall,
     SecretDoor {
         requires_key: bool,
     },
     // #[serde(with = "custom_serde::secret_passage")]
+    // #[serde(rename = "2")]
     SecretPassage,
     // #[serde(serialize_with = "custom_serde::serialize")]
     TreasureChest {
         contents: (),
     },
 }
+
+// struct Test {
+//     a: String,
+//     b: std::num::NonZeroUsize,
+// }
+
+// #[derive(Debug)]    
+// struct ZeroError;
+
+// impl Test {
+//     pub fn new(a: String, b: usize) -> Result<Test, ZeroError> {
+//         Ok(Self {
+//             a,
+//             b: NonZeroUsize::new(b).ok_or(ZeroError)?,
+//         })
+//     }
+// }
+
+// fn main() {
+//     let safe_to_unwrap = Test::new("hi".into(), 100).unwrap();
+//     let will_panic = Test::new("oh no!".into(), 0).unwrap();
+// }
 
 // mod custom_serde {
 //     use std::collections::HashMap;
