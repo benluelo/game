@@ -1,0 +1,85 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'game'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "creation",
+                    // "--no-run",
+                    // "--lib",
+                    // "--package=game"
+                ],
+                "filter": {
+                    "name": "game",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'dungeon'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=dungeon",
+                    "--package=game"
+                ],
+                "filter": {
+                    "name": "dungeon",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug benchmark 'bench_dungeon'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bench=bench_dungeon",
+                    "--package=game"
+                ],
+                "filter": {
+                    "name": "bench_dungeon",
+                    "kind": "bench"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug benchmark 'bench_get_adjacent_walls'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bench=bench_get_adjacent_walls",
+                    "--package=game"
+                ],
+                "filter": {
+                    "name": "bench_get_adjacent_walls",
+                    "kind": "bench"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

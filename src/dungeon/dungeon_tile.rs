@@ -10,16 +10,24 @@ pub enum DungeonTile {
     // #[serde(with = "custom_serde::wall")]
     // #[serde(rename = "1")]
     Wall,
-    SecretDoor {
-        requires_key: bool,
-    },
+    SecretDoor { requires_key: bool },
     // #[serde(with = "custom_serde::secret_passage")]
     // #[serde(rename = "2")]
     SecretPassage,
     // #[serde(serialize_with = "custom_serde::serialize")]
-    TreasureChest {
-        contents: (),
-    },
+    TreasureChest { contents: () },
+}
+
+impl DungeonTile {
+    pub fn as_u8(&self) -> u8 {
+        match self {
+            DungeonTile::Empty => 0,
+            DungeonTile::Wall => 1,
+            DungeonTile::SecretDoor { requires_key: _ } => dbg!(2),
+            DungeonTile::SecretPassage => dbg!(3),
+            DungeonTile::TreasureChest { contents: _ } => dbg!(4),
+        }
+    }
 }
 
 // struct Test {
@@ -27,7 +35,7 @@ pub enum DungeonTile {
 //     b: std::num::NonZeroUsize,
 // }
 
-// #[derive(Debug)]    
+// #[derive(Debug)]
 // struct ZeroError;
 
 // impl Test {
@@ -159,51 +167,51 @@ impl DungeonTile {
     }
 }
 
-#[cfg(test)]
-mod test_dungeon_tile_serialize_deserialize {
-    use super::*;
-    use serde_test::*;
+// #[cfg(test)]
+// mod test_dungeon_tile_serialize_deserialize {
+//     use super::*;
+//     use serde_test::*;
 
-    #[test]
-    fn test_empty() {
-        assert_tokens(&DungeonTile::Empty, &[Token::I32(0)])
-    }
+//     #[test]
+//     fn test_empty() {
+//         assert_tokens(&DungeonTile::Empty, &[Token::I32(0)])
+//     }
 
-    #[test]
-    fn test_wall() {
-        assert_tokens(&DungeonTile::Wall, &[Token::I32(1)])
-    }
+//     #[test]
+//     fn test_wall() {
+//         assert_tokens(&DungeonTile::Wall, &[Token::I32(1)])
+//     }
 
-    #[test]
-    fn test_chest() {
-        assert_tokens(
-            &DungeonTile::TreasureChest { contents: () },
-            &[
-                Token::Map { len: Some(1) },
-                Token::Str("TreasureChest"),
-                Token::Struct { name: "T", len: 1 },
-                Token::Str("contents"),
-                Token::Unit,
-                Token::StructEnd,
-                Token::MapEnd,
-            ],
-        )
-    }
+//     #[test]
+//     fn test_chest() {
+//         assert_tokens(
+//             &DungeonTile::TreasureChest { contents: () },
+//             &[
+//                 Token::Map { len: Some(1) },
+//                 Token::Str("TreasureChest"),
+//                 Token::Struct { name: "T", len: 1 },
+//                 Token::Str("contents"),
+//                 Token::Unit,
+//                 Token::StructEnd,
+//                 Token::MapEnd,
+//             ],
+//         )
+//     }
 
-    #[test]
-    fn test_secret_door() {
-        assert_tokens(
-            &DungeonTile::SecretDoor { requires_key: true },
-            &[
-                Token::StructVariant {
-                    name: "DungeonTile",
-                    variant: "SecretDoor",
-                    len: 1,
-                },
-                Token::Str("requires_key"),
-                Token::Bool(true),
-                Token::StructVariantEnd,
-            ],
-        )
-    }
-}
+//     #[test]
+//     fn test_secret_door() {
+//         assert_tokens(
+//             &DungeonTile::SecretDoor { requires_key: true },
+//             &[
+//                 Token::StructVariant {
+//                     name: "DungeonTile",
+//                     variant: "SecretDoor",
+//                     len: 1,
+//                 },
+//                 Token::Str("requires_key"),
+//                 Token::Bool(true),
+//                 Token::StructVariantEnd,
+//             ],
+//         )
+//     }
+// }

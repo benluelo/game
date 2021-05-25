@@ -9,7 +9,7 @@ pub mod dungeon;
 mod example;
 
 // bench
-pub fn create_dungeon(height: usize, width: usize) {
+pub fn create_dungeon(width: usize, height: usize) {
     let _ = Dungeon::new(
         height,
         width,

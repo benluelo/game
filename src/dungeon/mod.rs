@@ -1,5 +1,6 @@
 pub mod dungeon_tile;
 mod floor_builder;
+use ansi_term::ANSIStrings;
 use core::fmt;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
@@ -9,12 +10,8 @@ pub use crate::dungeon::dungeon_tile::DungeonTile;
 
 pub use self::floor_builder::floor_builder_state::Blank;
 pub use self::floor_builder::FloorBuilder;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct Point {
-    pub x: usize,
-    pub y: usize,
-}
+pub use point::*;
+mod point;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct Connection {
@@ -40,116 +37,42 @@ pub struct Dungeon {
 }
 
 impl Dungeon {
-    // pub fn to_gif(&mut self) -> () {
-    //     use gif::{Encoder, Frame, Repeat};
-    //     use std::borrow::Cow;
-    //     use std::fs::File;
+    pub fn to_gif(&self) -> Vec<u8> {
+        use gif::{Encoder, Frame, Repeat};
+        use std::borrow::Cow;
 
-    //     let color_map = &[0xFF, 0xFF, 0xFF, 0, 0, 0];
+        let color_map = &[0xFF, 0xFF, 0xFF, 0, 0, 0, 0xFF, 0, 0];
 
-    //     let mut image = File::create("tests/samples/beacon.gif").unwrap();
-    //     let mut encoder = Encoder::new(&mut image, width, height, color_map).unwrap();
-    //     encoder.set_repeat(Repeat::Infinite).unwrap();
-    //     for floor in &self.floors {
-    //         let mut frame = Frame::default();
-    //         frame.width = floor.width;
-    //         frame.height = floor.height;
-    //         frame.buffer = Cow::Borrowed(&*state);
-    //         encoder.write_frame(&frame).unwrap();
-    //     }
-    // }
-    // pub fn into_binary(self) -> Vec<u8> {
-    //     // first byte is the dungeon type
-    //     let mut bytes = vec![self.dungeon_type as u8];
-
-    //     // now add the floors, separated by the FloorEnd control byte
-    //     let iter = self
-    //         .floors
-    //         .iter()
-    //         .map(|floor| {
-    //             floor
-    //                 .iter()
-    //                 .map(|columns| {
-    //                     columns
-    //                         .iter()
-    //                         .map(|tile| *tile as u8)
-    //                         .chain(std::iter::once(BinaryDungeonControlByte::FloorRowEnd as u8))
-    //                 })
-    //                 .flatten()
-    //                 .chain(std::iter::once(BinaryDungeonControlByte::FloorEnd as u8))
-    //         })
-    //         .flatten();
-    //     bytes.extend(iter);
-
-    //     bytes
-    // }
-
-    // pub fn from_binary(bytes: Vec<u8>) -> Result<Self, DungeonDecodeError> {
-    //     let mut bytes = bytes.into_iter();
-    //     let dungeon_type = bytes
-    //         .next()
-    //         .map(TryInto::<DungeonType>::try_into)
-    //         .ok_or(DungeonDecodeError::UnexpectedEndOfBytes)??;
-
-    //     let mut floors: Vec<Floor> = vec![];
-
-    //     loop {
-    //         let mut floor_bytes = bytes
-    //             .by_ref()
-    //             .take_while(|b| *b != BinaryDungeonControlByte::FloorEnd as u8);
-    //         let mut rows = vec![];
-
-    //         loop {
-    //             let row = floor_bytes
-    //                 .by_ref()
-    //                 .take_while(|b| *b != BinaryDungeonControlByte::FloorRowEnd as u8)
-    //                 .map(TryInto::<DungeonTile>::try_into)
-    //                 .collect::<Result<Vec<_>, _>>()?;
-    //             if row.is_empty() {
-    //                 break;
-    //             }
-    //             rows.push(row.to_owned());
-    //         }
-    //         if rows.is_empty() {
-    //             break;
-    //         }
-    //         floors.push(Floor(rows))
-    //     }
-
-    //     Ok(Dungeon {
-    //         dungeon_type,
-    //         floors,
-    //     })
-    // }
+        let mut image = vec![];
+        {
+            let mut encoder = Encoder::new(
+                &mut image,
+                self.floors[0].width as u16,
+                self.floors[0].height as u16,
+                color_map,
+            )
+            .unwrap();
+            encoder.set_repeat(Repeat::Infinite).unwrap();
+            for floor in &self.floors {
+                let frame = Frame {
+                    width: floor.width as u16,
+                    height: floor.height as u16,
+                    buffer: Cow::Owned(
+                        floor
+                            .data
+                            .iter()
+                            .map(DungeonTile::as_u8)
+                            .collect::<Vec<_>>(),
+                    ),
+                    delay: 100,
+                    ..Default::default()
+                };
+                encoder.write_frame(&frame).unwrap();
+            }
+        }
+        image
+    }
 }
-
-// #[test]
-// fn test_dungeon_decoding() {
-//     let dungeon1 = Dungeon::new(
-//         NonZeroUsize::new(10).unwrap(),
-//         NonZeroUsize::new(10).unwrap(),
-//         NonZeroUsize::new(3).unwrap(),
-//         DungeonType::Cave,
-//     );
-
-//     assert_eq!(
-//         dungeon1,
-//         Dungeon::from_binary(dungeon1.clone().into_binary()).unwrap()
-//     )
-// }
-
-// #[test]
-// fn test_dungeon_encoding() {
-//     let dungeon = Dungeon::new(
-//         NonZeroUsize::new(10).unwrap(),
-//         NonZeroUsize::new(10).unwrap(),
-//         NonZeroUsize::new(6).unwrap(),
-//         DungeonType::Cave,
-//     );
-
-//     println!("{:X?}", dungeon.into_binary());
-//     // println!("{}", dungeon.floors);
-// }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Floor {
@@ -160,7 +83,35 @@ pub struct Floor {
 
 impl Floor {
     pub fn new(width: usize, height: usize) -> Self {
-        FloorBuilder::create(height, width)
+        FloorBuilder::create(width, height)
+    }
+
+    pub(crate) fn pretty(&self, extra_points: Vec<Point>, extra_points2: Vec<Point>) -> String {
+        self.data
+            .chunks(self.width)
+            .zip(0i32..)
+            .map(|i| {
+                ANSIStrings(
+                    &i.0.iter()
+                        .zip(0i32..)
+                        .map(|j| {
+                            j.0.print(
+                                extra_points2.contains(&Point {
+                                    row: Row::new(i.1),
+                                    column: Column::new(j.1),
+                                }),
+                                extra_points.contains(&Point {
+                                    row: Row::new(i.1),
+                                    column: Column::new(j.1),
+                                }),
+                            )
+                        })
+                        .collect::<Vec<_>>(),
+                )
+                .to_string()
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 }
 
@@ -174,14 +125,14 @@ impl Dungeon {
         Self {
             dungeon_type,
             floors: (0..floor_count.get())
-                .into_par_iter()
-                .map(|_| FloorBuilder::create(height, width))
+                // .into_par_iter()
+                .map(|_| FloorBuilder::create(width, height))
                 .collect(),
         }
     }
 
     pub fn to_json(&self) -> Result<String, serde_json::Error> {
-        serde_json::to_string_pretty(self)
+        serde_json::to_string(self)
     }
 }
 
@@ -193,7 +144,9 @@ pub enum DungeonType {
 }
 
 fn distance(from: Point, to: Point) -> f64 {
-    (((from.x as i64 - to.x as i64).pow(2) + (from.y as i64 - to.y as i64).pow(2)) as f64).sqrt()
+    (((from.row.get() as i64 - to.row.get() as i64).pow(2)
+        + (from.column.get() as i64 - to.column.get() as i64).pow(2)) as f64)
+        .sqrt()
 }
 
 #[cfg(test)]
@@ -221,48 +174,39 @@ mod test_dungeon {
         rmp_serde::from_read_ref::<_, Dungeon>(&contents).unwrap();
     }
 
-    //     #[test]
-    //     pub(crate) fn test_blank_floor_generation() {
-    //         let blank_floor = FloorBuilder::blank(
-    //             NonZeroUsize::new(10).unwrap(),
-    //             NonZeroUsize::new(10).unwrap(),
-    //         );
+    #[test]
+    pub(crate) fn test_blank_floor_generation() {
+        let blank_floor = FloorBuilder::<Blank>::blank(10, 10);
 
-    //         assert!(blank_floor.height.get() == 10);
-    //         assert!(blank_floor.width.get() == 10);
-    //     }
+        assert!(blank_floor.height == 10);
+        assert!(blank_floor.width == 10);
+    }
 
-    //     #[test]
-    //     pub(crate) fn test_random_fill_generation() {
-    //         let random_filled_floor = FloorBuilder::new(
-    //             NonZeroUsize::new(50).unwrap(),
-    //             NonZeroUsize::new(100).unwrap(),
-    //         );
-    //         let formatted = random_filled_floor.pretty(vec![], vec![]);
+    #[test]
+    pub(crate) fn test_random_fill_generation() {
+        let random_filled_floor = FloorBuilder::<Blank>::blank(50, 100);
+        let formatted = random_filled_floor.pretty(vec![], vec![]);
 
-    //         println!("{}", &formatted)
-    //     }
+        println!("{}", &formatted)
+    }
 
-    //     #[test]
-    //     pub(crate) fn test_border_finding() {
-    //         let floor_builder = FloorBuilder::new(
-    //             NonZeroUsize::new(100).unwrap(),
-    //             NonZeroUsize::new(100).unwrap(),
-    //         );
-    //         let caves = floor_builder.get_cave_borders();
-    //         let all_border_points = caves.iter().cloned().flatten().collect::<Vec<_>>();
+    // #[test]
+    // pub(crate) fn test_border_finding() {
+    //     let floor_builder = FloorBuilder::<Blank>::blank(50, 100);
+    //     let caves = floor_builder.get_cave_borders();
+    //     let all_border_points = caves.iter().cloned().flatten().collect::<Vec<_>>();
 
-    //         println!("{}", floor_builder.pretty(all_border_points, vec![]));
-    //         let caves_pretty = caves
-    //             .iter()
-    //             .map(|v| {
-    //                 v.iter()
-    //                     .map(|point| format!("({}, {})", point.x, point.y))
-    //                     .collect::<Vec<_>>()
-    //             })
-    //             .collect::<Vec<_>>();
-    //         println!("caves = {:#?}", caves_pretty);
-    //     }
+    //     println!("{}", floor_builder.pretty(all_border_points, vec![]));
+    //     let caves_pretty = caves
+    //         .iter()
+    //         .map(|v| {
+    //             v.iter()
+    //                 .map(|point| format!("({}, {})", point.x, point.y))
+    //                 .collect::<Vec<_>>()
+    //         })
+    //         .collect::<Vec<_>>();
+    //     println!("caves = {:#?}", caves_pretty);
+    // }
 
     // #[test]
     // pub(crate) fn test_cave_connections() {
