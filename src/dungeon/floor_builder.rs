@@ -48,15 +48,15 @@ impl FloorBuilder<New> {
             .smoothen(7, |r| r < 4)
             .get_cave_borders()
             .build_connections()
-            .trace_connection_paths(2)
+            .trace_connection_paths(true)
             .draw(|_, _, _| DungeonTile::Empty)
             .smoothen(7, |_| false)
             .check_for_secret_passages()
             .draw(|index, size, _| {
                 if index == 0 || index == size {
-                    DungeonTile::SecretDoor { requires_key: true }
+                    dbg!(DungeonTile::SecretDoor { requires_key: true })
                 } else {
-                    DungeonTile::SecretPassage
+                    dbg!(DungeonTile::SecretPassage)
                 }
             })
             .finish()
@@ -116,7 +116,7 @@ impl FloorBuilder<Blank> {
             }
         }
 
-        println!("{}\n", self.pretty(vec![], vec![]));
+        // println!("{}\n", self.pretty(vec![], vec![]));
 
         // ANCHOR: dijkstra
         // find path through noise map and apply path to walls map
@@ -175,15 +175,16 @@ impl FloorBuilder<Drawable> {
 }
 
 impl FloorBuilder<HasConnections> {
-    fn trace_connection_paths(self, _width: usize) -> FloorBuilder<Drawable> {
+    /// takes the connections from [`FloorBuilder::build_connections`] and traces paths between them, leaving the paths in the `to_draw` state of `FloorBuilder<Drawable>`.
+    fn trace_connection_paths(self, wide: bool) -> FloorBuilder<Drawable> {
         let to_draw = self
             .extra
             .connections
-            ./* par_ */iter()
+            .iter()
             .map(|(&(_, from), &(_, to))| {
                 let mut rng = StdRng::from_entropy();
 
-                let astar_result = dijkstra(
+                let (path, _) = dijkstra(
                     &from,
                     |&point| {
                         self.get_legal_neighbors(point)
@@ -195,7 +196,7 @@ impl FloorBuilder<HasConnections> {
 
                 let mut all_points = vec![];
 
-                for point in astar_result.0 {
+                for point in path {
                     if self.map.at(point, self.width).is_empty() {
                         break;
                     }
@@ -203,7 +204,7 @@ impl FloorBuilder<HasConnections> {
                 }
 
                 let mut extra_points = HashSet::new();
-
+                if wide {
                 for &point in &all_points {
                     for neighbor in match rng.gen_bool(0.5) {
                         true => self
@@ -215,10 +216,12 @@ impl FloorBuilder<HasConnections> {
                     }
                 }
 
-                all_points.into_iter().chain(extra_points)
+                all_points.extend(extra_points); all_points} else {all_points}
             })
             .flatten/* _iter */()
             .collect();
+
+        // dbg!(&to_draw);
 
         FloorBuilder {
             width: self.width,
@@ -386,8 +389,8 @@ impl<'a> FloorBuilder<Smoothed> {
                             }
                         } else {
                             if !border.is_empty() {
+                                println!("found border");
                                 // add the found cave to the collection of all caves
-                                // do some other fancy stuff maybe
                                 borders.push(border);
                             }
                             continue 'rows;
@@ -409,12 +412,25 @@ impl<'a> FloorBuilder<Smoothed> {
 impl<'a> FloorBuilder<Smoothed> {
     fn check_for_secret_passages(self) -> FloorBuilder<Drawable> {
         let self_with_borders = self.get_cave_borders();
+        println!(
+            "self_with_borders = {}\n",
+            self_with_borders.pretty(
+                vec![],
+                self_with_borders
+                    .extra
+                    .borders
+                    .iter()
+                    .map(|v| v.iter().cloned())
+                    .flatten()
+                    .collect()
+            )
+        );
 
-        if self_with_borders.extra.borders.len() == 1 {
+        if self_with_borders.extra.borders.len() > 1 {
             println!("building connections");
             self_with_borders
                 .build_connections()
-                .trace_connection_paths(1)
+                .trace_connection_paths(false)
         } else {
             let new_self = self_with_borders;
             FloorBuilder {
@@ -572,6 +588,7 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
                                     row: Row::new(i.0.try_into().unwrap()),
                                     column: Column::new(j.0.try_into().unwrap()),
                                 }),
+                                // true, true,
                             )
                         })
                         .collect::<Vec<_>>(),

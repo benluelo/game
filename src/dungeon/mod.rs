@@ -1,8 +1,8 @@
 pub mod dungeon_tile;
 mod floor_builder;
-use ansi_term::ANSIStrings;
+// use ansi_term::ANSIStrings;
 use core::fmt;
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
+// use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use std::{num::NonZeroUsize, usize};
 
@@ -41,7 +41,13 @@ impl Dungeon {
         use gif::{Encoder, Frame, Repeat};
         use std::borrow::Cow;
 
-        let color_map = &[0xFF, 0xFF, 0xFF, 0, 0, 0, 0xFF, 0, 0];
+        let color_map = &[
+            0xFF, 0xFF, 0xFF, // black
+            0x00, 0x00, 0x00, // white
+            0xFF, 0x00, 0x00, // red
+            0x00, 0xFF, 0x00, // green
+            0x00, 0x00, 0xFF, // blue
+        ];
 
         let mut image = vec![];
         {
@@ -86,33 +92,33 @@ impl Floor {
         FloorBuilder::create(width, height)
     }
 
-    pub(crate) fn pretty(&self, extra_points: Vec<Point>, extra_points2: Vec<Point>) -> String {
-        self.data
-            .chunks(self.width)
-            .zip(0i32..)
-            .map(|i| {
-                ANSIStrings(
-                    &i.0.iter()
-                        .zip(0i32..)
-                        .map(|j| {
-                            j.0.print(
-                                extra_points2.contains(&Point {
-                                    row: Row::new(i.1),
-                                    column: Column::new(j.1),
-                                }),
-                                extra_points.contains(&Point {
-                                    row: Row::new(i.1),
-                                    column: Column::new(j.1),
-                                }),
-                            )
-                        })
-                        .collect::<Vec<_>>(),
-                )
-                .to_string()
-            })
-            .collect::<Vec<_>>()
-            .join("\n")
-    }
+    // pub(crate) fn pretty(&self, extra_points: Vec<Point>, extra_points2: Vec<Point>) -> String {
+    //     self.data
+    //         .chunks(self.width)
+    //         .zip(0i32..)
+    //         .map(|i| {
+    //             ANSIStrings(
+    //                 &i.0.iter()
+    //                     .zip(0i32..)
+    //                     .map(|j| {
+    //                         j.0.print(
+    //                             extra_points2.contains(&Point {
+    //                                 row: Row::new(i.1),
+    //                                 column: Column::new(j.1),
+    //                             }),
+    //                             extra_points.contains(&Point {
+    //                                 row: Row::new(i.1),
+    //                                 column: Column::new(j.1),
+    //                             }),
+    //                         )
+    //                     })
+    //                     .collect::<Vec<_>>(),
+    //             )
+    //             .to_string()
+    //         })
+    //         .collect::<Vec<_>>()
+    //         .join("\n")
+    // }
 }
 
 impl Dungeon {
