@@ -205,12 +205,12 @@ impl FloorBuilder<HasConnections> {
 
                 let mut all_points = vec![];
 
-                match path.len() {
-                    // 1 or two long, all of the passages will become doors
-                    1 | 2 => {}
-                    // 3 or more long, make sure
-                    _ => {}
-                }
+                // match path.len() {
+                //     // 1 or two long, all of the passages will become doors
+                //     1 | 2 => {}
+                //     // 3 or more long, make sure
+                //     _ => {}
+                // }
                 for point in path {
                     // if an empty point is found, path is finished
                     if self.map.at(point, self.width).is_empty() {
@@ -307,7 +307,7 @@ impl FloorBuilder<HasBorders> {
                         .collect::<HashSet<_>>();
                     all_border_points
                         .iter()
-                        // filter out border points that either:
+                        // filter out border points that are either:
                         // - in the current border, or
                         // - in a border the current border is already connected to
                         .filter(|(_, id)| {
