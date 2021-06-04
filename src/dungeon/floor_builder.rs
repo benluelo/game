@@ -290,7 +290,7 @@ impl FloorBuilder<HasBorders> {
         let mut connections_with_points = HashMap::<(BorderId, Point), (BorderId, Point)>::new();
         // a graph is required to check for the strongly connected components and the
         // minimum spanning tree (because i don't want to implement that myself lol)
-        let mut connections = UnGraphMap::<BorderId, ()>::new();
+        let mut connected_borders_graph = UnGraphMap::<BorderId, ()>::new();
 
         // loop through all the borders
         loop {
@@ -302,30 +302,29 @@ impl FloorBuilder<HasBorders> {
                 .borders
                 .iter()
                 .filter_map(|current_border| {
-                    let already_connected_ids = connections
+                    let already_connected_ids = connected_borders_graph
                         .neighbors(current_border.id)
                         .collect::<HashSet<_>>();
+
                     all_border_points
                         .iter()
                         // filter out border points that are either:
                         // - in the current border, or
+                        .filter(|(_, id)| *id != current_border.id)
                         // - in a border the current border is already connected to
-                        .filter(|(_, id)| {
-                            *id != current_border.id || !already_connected_ids.contains(id)
-                        })
-                        .map(|&(point, id)| {
+                        .filter(|(_, id)| !already_connected_ids.contains(id))
+                        .flat_map(|&(point, id)| {
                             // find the point that's closest to the current border
                             current_border
                                 .points
                                 .iter()
-                                .map(move |border_point| Connection {
-                                    distance: distance(point, *border_point),
-                                    from: (current_border.id, *border_point),
+                                .map(move |&current_border_point| Connection {
+                                    distance: distance(point, current_border_point),
+                                    from: (current_border.id, current_border_point),
                                     to: (id, point),
                                 })
                             // .collect::<Vec<_>>()
                         })
-                        .flatten()
                         .reduce(|prev, curr| {
                             if prev.distance < curr.distance {
                                 prev
@@ -339,20 +338,22 @@ impl FloorBuilder<HasBorders> {
 
             // ANCHOR[id=why-inner-is-required] extend both the graph and the map with points with the same `_inner` variable to keep them in sync
             connections_with_points.extend(connections_with_points_inner);
-            connections.extend(connections_with_points.iter().map(|(k, v)| (k.0, v.0)));
+            connected_borders_graph.extend(connections_with_points.iter().map(|(k, v)| (k.0, v.0)));
 
             // strongly connected components
-            let sccs = kosaraju_scc(&connections);
+            let sccs = kosaraju_scc(&connected_borders_graph);
             if fully_connect {
                 if dbg!(dbg!(sccs).len()) == 1 {
                     let msf = UnGraphMap::from_elements(min_spanning_tree(
-                        &connections.into_graph::<usize>(),
+                        &connected_borders_graph.into_graph::<usize>(),
                     ));
                     break FloorBuilder {
                         extra: HasConnections {
                             connections: connections_with_points
                                 .into_iter()
-                                .filter(|&((k, _), (v, _))| msf.contains_edge(k, v))
+                                .filter(|&((k, _), (v, _))| {
+                                    msf.contains_edge(k, v) || msf.contains_edge(v, k)
+                                })
                                 .collect(),
                         },
                         height: self.height,
@@ -360,10 +361,10 @@ impl FloorBuilder<HasBorders> {
                         map: self.map,
                         noise_map: self.noise_map,
                     };
-                } else {
-                    // if there is more than 1 scc, loop and go again
-                    continue;
-                }
+                } /* else {
+                      // if there is more than 1 scc, loop and go again
+                      continue;
+                  } */
             } else {
                 break FloorBuilder {
                     extra: HasConnections {
