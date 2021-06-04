@@ -344,7 +344,7 @@ impl FloorBuilder<HasBorders> {
             // strongly connected components
             let sccs = kosaraju_scc(&connections);
             if fully_connect {
-                if dbg!(sccs.len()) == 1 {
+                if dbg!(dbg!(sccs).len()) == 1 {
                     let msf = UnGraphMap::from_elements(min_spanning_tree(
                         &connections.into_graph::<usize>(),
                     ));
