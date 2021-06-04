@@ -2,6 +2,7 @@ pub mod dungeon_tile;
 mod floor_builder;
 // use ansi_term::ANSIStrings;
 use core::fmt;
+use std::collections::HashSet;
 // use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use std::{num::NonZeroUsize, usize};
@@ -12,6 +13,12 @@ pub use self::floor_builder::floor_builder_state::Blank;
 pub use self::floor_builder::FloorBuilder;
 pub use point::*;
 mod point;
+
+#[derive(Debug, Clone)]
+pub(crate) struct Border {
+    pub id: BorderId,
+    pub points: HashSet<Point>,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct Connection {
@@ -70,7 +77,7 @@ impl Dungeon {
                             .map(DungeonTile::as_u8)
                             .collect::<Vec<_>>(),
                     ),
-                    delay: 100,
+                    delay: 300,
                     ..Default::default()
                 };
                 encoder.write_frame(&frame).unwrap();

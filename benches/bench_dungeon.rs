@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, SamplingMode};
-use game::dungeon::{Blank, Dungeon, DungeonType, FloorBuilder, Point};
+use game::dungeon::{Dungeon, DungeonType};
 use std::num::NonZeroUsize;
 
 fn bench_dungeon_generation(c: &mut Criterion) {

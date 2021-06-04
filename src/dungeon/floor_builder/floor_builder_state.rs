@@ -1,13 +1,20 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt,
+};
 
-use crate::dungeon::{BorderId, Point};
+use crate::dungeon::{Border, BorderId, Point};
 
 pub trait FloorBuilderState {}
 pub trait Smoothable: FloorBuilderState {}
 
+pub trait DebugIterator: Iterator<Item = Point> + fmt::Debug {}
+
+impl<T> DebugIterator for T where T: Iterator<Item = Point> + fmt::Debug {}
+
 #[derive(Debug)]
 pub(super) struct Drawable {
-    pub(super) to_draw: Vec<Point>,
+    pub(super) to_draw: Vec<Vec<Point>>,
 }
 impl FloorBuilderState for Drawable {}
 
@@ -25,7 +32,7 @@ impl FloorBuilderState for Buildable {}
 
 #[derive(Debug)]
 pub(super) struct HasBorders {
-    pub(super) borders: Vec<HashSet<Point>>,
+    pub(super) borders: Vec<Border>,
 }
 impl FloorBuilderState for HasBorders {}
 

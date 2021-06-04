@@ -1,6 +1,7 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion, SamplingMode};
-use game::dungeon::{Blank, Dungeon, DungeonTile, FloorBuilder, Point};
+use criterion::{criterion_group, criterion_main, Criterion};
+use game::dungeon::DungeonTile;
 
+#[allow(unused_variables)]
 fn bench_get_adjacent_walls(c: &mut Criterion) {
     // let height = 10;
     // let width = 10;
@@ -23,6 +24,7 @@ criterion_group!(
 );
 criterion_main!(benches);
 
+#[allow(dead_code)]
 const MAP: [DungeonTile; 100] = [
     DungeonTile::Wall,
     DungeonTile::Wall,
