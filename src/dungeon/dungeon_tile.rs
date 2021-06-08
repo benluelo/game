@@ -23,9 +23,9 @@ impl DungeonTile {
         match self {
             DungeonTile::Empty => 0,
             DungeonTile::Wall => 1,
-            DungeonTile::SecretDoor { requires_key: _ } => dbg!(2),
-            DungeonTile::SecretPassage => dbg!(3),
-            DungeonTile::TreasureChest { contents: _ } => dbg!(4),
+            DungeonTile::SecretDoor { requires_key: _ } => 2,
+            DungeonTile::SecretPassage => 3,
+            DungeonTile::TreasureChest { contents: _ } => 4,
         }
     }
 }
@@ -146,7 +146,7 @@ impl DungeonTile {
         matches!(self, DungeonTile::Empty)
     }
 
-    pub(crate) fn print(&self, var1: bool, var2: bool) -> ANSIString {
+    pub(crate) fn _print(&self, var1: bool, var2: bool) -> ANSIString {
         let style = Style::new();
 
         if var1 {

@@ -3,6 +3,7 @@ mod floor_builder;
 // use ansi_term::ANSIStrings;
 use core::fmt;
 use std::collections::HashSet;
+use std::iter;
 // use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use std::{num::NonZeroUsize, usize};
@@ -15,6 +16,56 @@ pub use point::*;
 mod point;
 
 #[derive(Debug, Clone)]
+pub(crate) struct ConnectionPath {
+    start_border_id: BorderId,
+    end_border_id: BorderId,
+    path: ConnectionPathLength,
+}
+
+#[allow(dead_code)]
+impl ConnectionPath {
+    pub fn length(&self) -> usize {
+        use ConnectionPathLength::*;
+        match &self.path {
+            Length1 { .. } => 1,
+            Length2 { .. } => 2,
+            // add 2 to include the start and end points
+            Length3Plus { points, .. } => points.len() + 2,
+        }
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = Point> {
+        use ConnectionPathLength::*;
+        match &self.path {
+            Length1 { point } => vec![*point],
+            Length2 { start, end } => vec![*start, *end],
+            Length3Plus { points, start, end } => iter::once(*start)
+                .chain(points.clone())
+                .chain(iter::once(*end))
+                .collect(),
+        }
+        .into_iter()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) enum ConnectionPathLength {
+    Length1 {
+        point: Point,
+    },
+    Length2 {
+        start: Point,
+        end: Point,
+    },
+    Length3Plus {
+        start: Point,
+        end: Point,
+        /// the points of the path between the start and the end, escluding start and end
+        points: HashSet<Point>,
+    },
+}
+
+#[derive(Debug, Clone)]
 pub(crate) struct Border {
     pub id: BorderId,
     pub points: HashSet<Point>,
@@ -23,8 +74,8 @@ pub(crate) struct Border {
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct Connection {
     distance: f64,
-    from: (BorderId, Point),
-    to: (BorderId, Point),
+    from: (Point, BorderId),
+    to: (Point, BorderId),
 }
 
 #[derive(Hash, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -198,7 +249,7 @@ mod test_dungeon {
     #[test]
     pub(crate) fn test_random_fill_generation() {
         let random_filled_floor = FloorBuilder::<Blank>::blank(50, 100);
-        let formatted = random_filled_floor.pretty(vec![], vec![]);
+        let formatted = random_filled_floor._pretty(vec![], vec![]);
 
         println!("{}", &formatted)
     }

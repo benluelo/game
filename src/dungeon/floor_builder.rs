@@ -1,22 +1,25 @@
 use crate::dungeon::{
     distance, dungeon_tile::DungeonTile, floor_builder::floor_builder_state::*, Border, BorderId,
-    Column, Connection, Floor, Point, Row,
+    Column, Connection, ConnectionPath, ConnectionPathLength, Floor, Point, Row,
 };
 use ansi_term::ANSIStrings;
+use itertools::Itertools;
 use noise::{Billow, MultiFractal, NoiseFn, Seedable};
 use pathfinding::prelude::dijkstra;
 use petgraph::{
     algo::{kosaraju_scc, min_spanning_tree},
     data::FromElements,
+    dot::Dot,
     graphmap::UnGraphMap,
 };
 use rand::{prelude::StdRng, thread_rng, Rng, SeedableRng};
-// use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
-// use num_traits::{SaturatingAdd, SaturatingSub};
+
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     convert::TryInto,
     fmt::Debug,
+    fs::File,
+    io::Write,
     iter,
 };
 
@@ -24,7 +27,7 @@ pub mod floor_builder_state;
 
 pub const MIN_FLOOR_SIZE: usize = 10;
 
-/// Represents a floor of a dungeon.
+/// Represents a floor of a dungeon
 /// See http://roguebasin.roguelikedevelopment.org/index.php?title=Cellular_Automata_Method_for_Generating_Random_Cave-Like_Levels
 #[derive(Debug)]
 pub struct FloorBuilder<S: FloorBuilderState> {
@@ -59,18 +62,16 @@ impl FloorBuilder<New> {
                 .draw(|_, _, _| DungeonTile::Empty)
                 .smoothen(7, |_| false)
                 .check_for_secret_passages()
-                .draw(|index, size, _| {
-                    if index == 0 || index == size - 1 {
+                .draw(|is_first, is_last, _| {
+                    if is_first || is_last {
+                        dbg!(is_first);
+                        dbg!(is_last);
+                        println!();
                         DungeonTile::SecretDoor { requires_key: true }
                     } else {
                         DungeonTile::SecretPassage
                     }
                 });
-
-        // loop {
-        //     let fb = fb.smoothen(0, |_| false).get_cave_borders();
-        //     if fb.extra.borders {}
-        // }
         fb.finish()
     }
 }
@@ -157,12 +158,37 @@ impl FloorBuilder<Blank> {
 }
 
 impl FloorBuilder<Drawable> {
-    fn draw(mut self, draw_with: fn(usize, usize, Point) -> DungeonTile) -> FloorBuilder<Filled> {
-        for iter in self.extra.to_draw.into_iter() {
-            let size = iter.len();
-            for (index, point) in iter.into_iter().enumerate() {
-                *self.map.at_mut(point, self.width) = draw_with(index, size, point);
-            }
+    fn draw(
+        mut self,
+        draw_with: fn(
+            // is_first
+            bool,
+            // is_last
+            bool,
+            Point,
+        ) -> DungeonTile,
+    ) -> FloorBuilder<Filled> {
+        for path in self.extra.to_draw.into_iter() {
+            use ConnectionPathLength::*;
+            match &path.path {
+                Length1 { point } => {
+                    *self.map.at_mut(*point, self.width) = draw_with(true, true, *point)
+                }
+                Length2 { start, end } => {
+                    *self.map.at_mut(*start, self.width) = draw_with(true, false, *start);
+                    *self.map.at_mut(*end, self.width) = draw_with(false, true, *end);
+                }
+                Length3Plus { points, start, end } => {
+                    assert!(!points.contains(start));
+                    assert!(!points.contains(end));
+                    *self.map.at_mut(*start, self.width) = draw_with(true, false, *start);
+                    *self.map.at_mut(*end, self.width) = draw_with(false, true, *end);
+
+                    for point in points {
+                        *self.map.at_mut(*point, self.width) = draw_with(false, false, *point);
+                    }
+                }
+            };
         }
 
         FloorBuilder {
@@ -182,7 +208,7 @@ impl FloorBuilder<HasConnections> {
             .extra
             .connections
             .iter()
-            .map(|(&(_, from), &(_, to))| {
+            .map(|(&(from, from_id), &(to, to_id))| {
                 let mut rng = StdRng::from_entropy();
 
                 let (path, _) = dijkstra(
@@ -203,52 +229,67 @@ impl FloorBuilder<HasConnections> {
                 )
                 .expect("no path found");
 
-                let mut all_points = vec![];
+                // let mut all_points = vec![];
 
+                // TODO: figure out what this was for lol
                 // match path.len() {
                 //     // 1 or two long, all of the passages will become doors
                 //     1 | 2 => {}
                 //     // 3 or more long, make sure
                 //     _ => {}
                 // }
-                for point in path {
-                    // if an empty point is found, path is finished
-                    if self.map.at(point, self.width).is_empty() {
-                        break;
-                    }
-                    all_points.push(point);
-                }
 
-                let mut extra_points = HashSet::new();
-                if wide {
-                    for &point in &all_points {
-                        for neighbor in match rng.gen_bool(0.5) {
-                            true => self
-                                .get_legal_neighbors_down_and_right(point)
-                                .collect::<Vec<_>>(),
-                            false => self.get_legal_neighbors(point).collect::<Vec<_>>(),
-                        } {
-                            extra_points.insert(neighbor);
+                // REVIEW: use a `try_*` iterator?
+
+                let all_points = path
+                    .into_iter()
+                    .enumerate()
+                    .filter_map(|(_index, point)| {
+                        // if an empty point is found anywhere beside the path, the path is finished
+                        // make sure to not check for the first point (hence the enumerate)
+                        // FIXME: somehow make sure the points aren't from the starting cave
+                        if self.map.at(point, self.width).is_empty() {
+                            None
+                        } else {
+                            Some(point)
                         }
-                    }
-                    iter::once(from)
-                        .chain(
-                            all_points
-                                .into_iter()
+                    })
+                    .collect::<Vec<_>>();
+
+                ConnectionPath {
+                    start_border_id: from_id,
+                    end_border_id: to_id,
+                    path: match all_points.as_slice() {
+                        [point] => ConnectionPathLength::Length1 { point: *point },
+                        [start, end] => ConnectionPathLength::Length2 {
+                            start: *start,
+                            end: *end,
+                        },
+                        _ => ConnectionPathLength::Length3Plus {
+                            points: all_points
+                                .iter()
+                                .copied()
+                                .chain(if wide {
+                                    all_points
+                                        .iter()
+                                        .flat_map(|&point| match rng.gen_bool(0.5) {
+                                            true => self
+                                                .get_legal_neighbors_down_and_right(point)
+                                                .collect::<Vec<_>>(),
+                                            false => {
+                                                self.get_legal_neighbors(point).collect::<Vec<_>>()
+                                            }
+                                        })
+                                        .collect_vec()
+                                } else {
+                                    vec![]
+                                })
                                 .filter(move |v| *v != from && *v != to)
-                                .chain(extra_points),
-                        )
-                        .chain(iter::once(to))
-                        .collect::<Vec<_>>()
-                } else {
-                    iter::once(from)
-                        .chain(
-                            all_points
-                                .into_iter()
-                                .filter(move |v| *v != from && *v != to),
-                        )
-                        .chain(iter::once(to))
-                        .collect::<Vec<_>>()
+                                .collect::<HashSet<_>>(),
+                            start: from,
+                            end: to,
+                        },
+                    },
                 }
             })
             .collect();
@@ -268,13 +309,13 @@ impl FloorBuilder<HasBorders> {
     fn build_connections(self, fully_connect: bool) -> FloorBuilder<HasConnections> {
         if self.extra.borders.len() == 1 {
             return FloorBuilder {
-                extra: HasConnections {
-                    connections: Default::default(),
-                },
-                height: self.height,
                 width: self.width,
+                height: self.height,
                 map: self.map,
                 noise_map: self.noise_map,
+                extra: HasConnections {
+                    ..Default::default()
+                },
             };
         }
 
@@ -287,17 +328,18 @@ impl FloorBuilder<HasBorders> {
             .flatten()
             .collect::<HashSet<(Point, BorderId)>>();
 
-        let mut connections_with_points = HashMap::<(BorderId, Point), (BorderId, Point)>::new();
+        let mut connections_with_points = HashMap::<(Point, BorderId), (Point, BorderId)>::new();
         // a graph is required to check for the strongly connected components and the
         // minimum spanning tree (because i don't want to implement that myself lol)
         let mut connected_borders_graph = UnGraphMap::<BorderId, ()>::new();
 
         // loop through all the borders
+        let mut i = 1;
         loop {
             println!("loop");
             // the `_inner` variable is required to add to both the graph and the hashmap and keep them in sync
             // LINK src/dungeon/floor_builder.rs#why-inner-is-required
-            let connections_with_points_inner: HashMap<(BorderId, Point), (BorderId, Point)> = self
+            let connections_with_points_inner: HashMap<_, _> = self
                 .extra
                 .borders
                 .iter()
@@ -320,8 +362,8 @@ impl FloorBuilder<HasBorders> {
                                 .iter()
                                 .map(move |&current_border_point| Connection {
                                     distance: distance(point, current_border_point),
-                                    from: (current_border.id, current_border_point),
-                                    to: (id, point),
+                                    from: (current_border_point, current_border.id),
+                                    to: (point, id),
                                 })
                             // .collect::<Vec<_>>()
                         })
@@ -338,23 +380,49 @@ impl FloorBuilder<HasBorders> {
 
             // ANCHOR[id=why-inner-is-required] extend both the graph and the map with points with the same `_inner` variable to keep them in sync
             connections_with_points.extend(connections_with_points_inner);
-            connected_borders_graph.extend(connections_with_points.iter().map(|(k, v)| (k.0, v.0)));
+            connected_borders_graph.extend(connections_with_points.iter().map(|(k, v)| (k.1, v.1)));
+
+            write!(
+                File::create(format!("dot{}.dot", i)).unwrap(),
+                "{:?}",
+                Dot::with_config(&connected_borders_graph, Default::default())
+            )
+            .unwrap();
+
+            i += 1;
 
             // strongly connected components
             let sccs = kosaraju_scc(&connected_borders_graph);
+
+            // TODO: make the break more dry
+            // maybe `if fully_connect || (!fully_connect && sccs.len() == 1)` ?
             if fully_connect {
-                if dbg!(dbg!(sccs).len()) == 1 {
+                if dbg!(sccs).len() == 1 {
                     let msf = UnGraphMap::from_elements(min_spanning_tree(
                         &connected_borders_graph.into_graph::<usize>(),
                     ));
+                    write!(
+                        File::create("msf.dot").unwrap(),
+                        "{:?}",
+                        Dot::with_config(&msf, Default::default())
+                    )
+                    .unwrap();
                     break FloorBuilder {
                         extra: HasConnections {
                             connections: connections_with_points
                                 .into_iter()
-                                .filter(|&((k, _), (v, _))| {
-                                    msf.contains_edge(k, v) || msf.contains_edge(v, k)
-                                })
+                                .filter(|&((_, k), (_, v))| msf.contains_edge(k, v))
                                 .collect(),
+                            borders: all_border_points.iter().fold(
+                                HashMap::new(),
+                                |mut acc, &(point, border_id)| {
+                                    acc.entry(border_id).or_insert(Border {
+                                        id: border_id,
+                                        points: [point].iter().cloned().collect(),
+                                    });
+                                    acc
+                                },
+                            ),
                         },
                         height: self.height,
                         width: self.width,
@@ -369,6 +437,16 @@ impl FloorBuilder<HasBorders> {
                 break FloorBuilder {
                     extra: HasConnections {
                         connections: connections_with_points,
+                        borders: all_border_points.iter().fold(
+                            HashMap::new(),
+                            |mut acc, &(point, border_id)| {
+                                acc.entry(border_id).or_insert(Border {
+                                    id: border_id,
+                                    points: [point].iter().cloned().collect(),
+                                });
+                                acc
+                            },
+                        ),
                     },
                     height: self.height,
                     width: self.width,
@@ -383,7 +461,6 @@ impl FloorBuilder<HasBorders> {
 impl FloorBuilder<Smoothed> {
     fn get_cave_borders(self) -> FloorBuilder<HasBorders> {
         let mut already_visited = vec![false; (self.width * self.height).try_into().unwrap()];
-        // self.closest_empty_point_to_center();
 
         let mut borders = vec![];
 
@@ -607,7 +684,7 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
             .filter(move |&point| !self.is_out_of_bounds(point))
     }
 
-    pub(crate) fn pretty(&self, extra_points: Vec<Point>, extra_points2: Vec<Point>) -> String {
+    pub(crate) fn _pretty(&self, extra_points: Vec<Point>, extra_points2: Vec<Point>) -> String {
         self.map
             // .par_iter()
             .chunks(self.width as usize)
@@ -617,7 +694,7 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
                     &i.1.iter() /* par_ */
                         .enumerate()
                         .map(|j| {
-                            j.1.print(
+                            j.1._print(
                                 extra_points2.contains(&Point {
                                     row: Row::new(i.0.try_into().unwrap()),
                                     column: Column::new(j.0.try_into().unwrap()),
