@@ -65,12 +65,19 @@ pub(crate) enum ConnectionPathLength {
     },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub(crate) struct Border {
     pub id: BorderId,
     pub points: HashSet<Point>,
 }
 
+impl fmt::Debug for Border {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Border").field("id", &self.id).finish()
+    }
+}
+
+// ANCHOR[id=connection]
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct Connection {
     distance: f64,
