@@ -55,7 +55,7 @@ impl FloorBuilder<New> {
         let fb =
             FloorBuilder::<Blank>::blank(width.try_into().unwrap(), height.try_into().unwrap())
                 .random_fill()
-                .smoothen(7, |r| r < 4)
+                .smoothen(3, |r| r < 4)
                 .get_cave_borders()
                 .build_connections(BuildConnectionIterations::Finite(20))
                 .trace_connection_paths(true, true)
@@ -229,8 +229,6 @@ impl FloorBuilder<HasConnections> {
                 )
                 .expect("no path found");
 
-                // let mut all_points = vec![];
-
                 // TODO: figure out what this was for lol
                 // match path.len() {
                 //     // 1 or two long, all of the passages will become doors
@@ -243,12 +241,19 @@ impl FloorBuilder<HasConnections> {
 
                 let all_points = path
                     .into_iter()
-                    .enumerate()
-                    .filter_map(|(_index, point)| {
-                        // if an empty point is found anywhere beside the path, the path is finished
+                    .try(|point| {
+                        // if an empty point is found on the path or beside the path
+                        // (not including the start and finish points), the path is finished
                         // make sure to not check for the first point (hence the enumerate)
                         // FIXME: somehow make sure the points aren't from the starting cave
-                        if self.map.at(point, self.width).is_empty() {
+                        if (self.map.at(point, self.width).is_empty()
+                             && !self.extra.borders[&from_id].points.contains(&point))
+                             || (
+                                 (point != from && point != to)
+                                 && self.get_legal_neighbors(point)
+                                    .any(|p|self.map.at(p, self.width).is_empty())
+                                )
+                        {
                             None
                         } else {
                             Some(point)
@@ -272,14 +277,16 @@ impl FloorBuilder<HasConnections> {
                                 .chain(if wide {
                                     all_points
                                         .iter()
-                                        .flat_map(|&point| match rng.gen_bool(0.5) {
-                                            true => self
-                                                .get_legal_neighbors_down_and_right(point)
-                                                .collect::<Vec<_>>(),
-                                            false => {
-                                                self.get_legal_neighbors(point).collect::<Vec<_>>()
-                                            }
-                                        })
+                                        .flat_map(|&point| 
+                                            // match rng.gen_bool(0.5) {
+                                            // true => self
+                                                // .get_legal_neighbors_down_and_right(point)
+                                                // .collect::<Vec<_>>(),
+                                            // false => {
+                                                self.get_legal_neighbors(point)/* .collect::<Vec<_>>() */
+                                            // }
+                                        // }
+                                    )
                                         .collect_vec()
                                 } else {
                                     vec![]
@@ -304,6 +311,7 @@ impl FloorBuilder<HasConnections> {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub enum BuildConnectionIterations {
     FullyConnect,
     Finite(u8),
@@ -311,51 +319,35 @@ pub enum BuildConnectionIterations {
     Until(u8),
 }
 
-impl BuildConnectionIterations {
-    pub fn as_range(&self) -> Box<dyn Iterator<Item = u8>> {
-        match self {
-            BuildConnectionIterations::FullyConnect => {
-                println!("fully connect bb");
-                Box::new(iter::repeat(u8::MAX))
-            }
-            BuildConnectionIterations::Finite(amount) => {
-                println!("finite: {}", &amount);
-                Box::new(0..*amount)
-            }
-            BuildConnectionIterations::Until(_) => todo!(),
-        }
-    }
-}
+// #[cfg(test)]
+// mod test_build_connection_iterations {
+//     use super::*;
 
-#[cfg(test)]
-mod test_build_connection_iterations {
-    use super::*;
-
-    #[test]
-    fn test_finite() {
-        let to_zip = vec![1, 2, 3, 4, 5];
-        for i in BuildConnectionIterations::Finite(10)
-            .as_range()
-            .zip(&to_zip)
-        {
-            println!("{:?}", i);
-        }
-    }
-    #[test]
-    fn test_infinite() {
-        let to_zip = vec![1, 2, 3, 4, 5];
-        for i in BuildConnectionIterations::FullyConnect
-            .as_range()
-            .zip(to_zip)
-        {
-            println!("{:?}", i);
-        }
-    }
-}
+//     #[test]
+//     fn test_finite() {
+//         let to_zip = vec![1, 2, 3, 4, 5];
+//         for i in BuildConnectionIterations::Finite(10)
+//             .as_range()
+//             .zip(&to_zip)
+//         {
+//             println!("{:?}", i);
+//         }
+//     }
+//     #[test]
+//     fn test_infinite() {
+//         let to_zip = vec![1, 2, 3, 4, 5];
+//         for i in BuildConnectionIterations::FullyConnect
+//             .as_range()
+//             .zip(to_zip)
+//         {
+//             println!("{:?}", i);
+//         }
+//     }
+// }
 
 impl FloorBuilder<HasBorders> {
     /// build bridges between the disjointed caves and the closest cave border point *not* in the border of said disjointed cave
-    fn build_connections(
+    pub fn build_connections(
         self,
         iterations: BuildConnectionIterations,
     ) -> FloorBuilder<HasConnections> {
@@ -389,14 +381,15 @@ impl FloorBuilder<HasBorders> {
             connected_borders_graph.add_node(id);
         }
 
+        // match iterations {
+        //     BuildConnectionIterations::FullyConnect => todo!(),
+        //     BuildConnectionIterations::Finite(_) => todo!(),
+        //     BuildConnectionIterations::Until(_) => todo!(),
+        // }
+
         // loop through all the borders
         // build one connection per loop
-        dbg!(self.extra.borders.len());
-        dbg!(iterations
-            .as_range()
-            .zip(&self.extra.borders)
-            .collect::<Vec<_>>());
-        for (_, current_border) in iterations.as_range().zip(&self.extra.borders) {
+        for (acc, current_border) in self.extra.borders.iter().enumerate() {
             dbg!(current_border.id);
             let already_connected_ids = connected_borders_graph
                 .neighbors(current_border.id)
@@ -438,9 +431,16 @@ impl FloorBuilder<HasBorders> {
             // strongly connected components
             let sccs = kosaraju_scc(&connected_borders_graph);
 
-            // if there is only one scc, we're done here
             dbg!(&sccs);
-            if sccs.len() == 1 {
+            let should_return = match iterations {
+                // if there is only one scc, we're done here
+                BuildConnectionIterations::FullyConnect => sccs.len() == 1,
+                // if we've iterated enough times, return
+                BuildConnectionIterations::Finite(amount) => acc == amount as usize,
+                // if the amount of sccs is less than or equal to the amount requested, return
+                BuildConnectionIterations::Until(until) => sccs.len() <= until.into(),
+            };
+            if should_return {
                 let msf = UnGraphMap::from_elements(min_spanning_tree(
                     &connected_borders_graph.into_graph::<usize>(),
                 ));
@@ -458,7 +458,7 @@ impl FloorBuilder<HasBorders> {
                         borders: self.extra.borders.into_iter().map(|b| (b.id, b)).collect(),
                     },
                 };
-            }
+            };
         }
         FloorBuilder {
             width: self.width,
