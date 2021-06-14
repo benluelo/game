@@ -23,11 +23,11 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
         BoundedInt(n.min(Self::HIGH).max(Self::LOW))
     }
 
-    pub fn new(n: i32) -> Result<Self, &'static str> {
+    pub fn new(n: i32) -> Result<Self, BoundedIntError> {
         assert!(LOW < HIGH);
         match n {
-            n if n < Self::LOW => Err("Value too low"),
-            n if n > Self::HIGH => Err("Value too high"),
+            n if n < Self::LOW => Err(BoundedIntError::TooLow(n)),
+            n if n > Self::HIGH => Err(BoundedIntError::TooHigh(n)),
             n => Ok(BoundedInt(n)),
         }
     }
