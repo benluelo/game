@@ -1,8 +1,8 @@
 use ansi_term::{ANSIString, Colour::Green, Style};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 // #[serde(untagged)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum DungeonTile {
     // #[serde(with = "custom_serde::empty")]
     // #[serde(rename = "0")]
@@ -139,11 +139,11 @@ impl Default for DungeonTile {
 
 impl DungeonTile {
     pub(crate) fn is_wall(&self) -> bool {
-        !self.is_empty()
+        matches!(self, DungeonTile::Wall)
     }
 
     pub(crate) fn is_empty(&self) -> bool {
-        matches!(self, DungeonTile::Empty)
+        !self.is_wall()
     }
 
     pub(crate) fn _print(&self, var1: bool, var2: bool) -> ANSIString {

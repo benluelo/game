@@ -9,6 +9,9 @@ use serde::{Deserialize, Serialize};
 use std::{num::NonZeroUsize, usize};
 
 pub use crate::dungeon::dungeon_tile::DungeonTile;
+use crate::dungeon::floor_builder::bounded_int::BoundedInt;
+use crate::dungeon::floor_builder::MAX_FLOOR_SIZE;
+use crate::dungeon::floor_builder::MIN_FLOOR_SIZE;
 
 pub use self::floor_builder::floor_builder_state::Blank;
 pub use self::floor_builder::FloorBuilder;
@@ -118,16 +121,16 @@ impl Dungeon {
         {
             let mut encoder = Encoder::new(
                 &mut image,
-                self.floors[0].width as u16,
-                self.floors[0].height as u16,
+                self.floors[0].width.as_unbounded() as u16,
+                self.floors[0].height.as_unbounded() as u16,
                 color_map,
             )
             .unwrap();
             encoder.set_repeat(Repeat::Infinite).unwrap();
             for floor in &self.floors {
                 let frame = Frame {
-                    width: floor.width as u16,
-                    height: floor.height as u16,
+                    width: floor.width.as_unbounded() as u16,
+                    height: floor.height.as_unbounded() as u16,
                     buffer: Cow::Owned(
                         floor
                             .data
@@ -147,13 +150,16 @@ impl Dungeon {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Floor {
-    width: usize,
-    height: usize,
+    width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
+    height: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
     data: Vec<DungeonTile>,
 }
 
 impl Floor {
-    pub fn new(width: usize, height: usize) -> Self {
+    pub fn new(
+        width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
+        height: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
+    ) -> Self {
         FloorBuilder::create(width, height)
     }
 
@@ -188,8 +194,8 @@ impl Floor {
 
 impl Dungeon {
     pub fn new(
-        height: usize,
-        width: usize,
+        height: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
+        width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
         floor_count: NonZeroUsize,
         dungeon_type: DungeonType,
     ) -> Self {
@@ -215,20 +221,25 @@ pub enum DungeonType {
 }
 
 fn distance(from: Point, to: Point) -> f64 {
-    (((from.row.get() as i64 - to.row.get() as i64).pow(2)
-        + (from.column.get() as i64 - to.column.get() as i64).pow(2)) as f64)
+    (((*from.row.get() - *to.row.get()).pow(2) + (*from.column.get() - *to.column.get()).pow(2))
+        as f64)
         .sqrt()
 }
 
 #[cfg(test)]
 mod test_dungeon {
-    use std::{fs, mem};
+    use std::{convert::TryInto, fs, mem};
 
     use super::*;
 
     #[test]
     fn test_serialize() {
-        let dungeon = Dungeon::new(50, 50, NonZeroUsize::new(10).unwrap(), DungeonType::Cave);
+        let dungeon = Dungeon::new(
+            50.try_into().unwrap(),
+            50.try_into().unwrap(),
+            NonZeroUsize::new(10).unwrap(),
+            DungeonType::Cave,
+        );
 
         let contents = rmp_serde::to_vec(&dungeon).unwrap();
 
@@ -247,15 +258,17 @@ mod test_dungeon {
 
     #[test]
     pub(crate) fn test_blank_floor_generation() {
-        let blank_floor = FloorBuilder::<Blank>::blank(10, 10);
+        let blank_floor =
+            FloorBuilder::<Blank>::blank(10.try_into().unwrap(), 10.try_into().unwrap());
 
-        assert!(blank_floor.height == 10);
-        assert!(blank_floor.width == 10);
+        assert!(blank_floor.height.as_unbounded() == 10);
+        assert!(blank_floor.width.as_unbounded() == 10);
     }
 
     #[test]
     pub(crate) fn test_random_fill_generation() {
-        let random_filled_floor = FloorBuilder::<Blank>::blank(50, 100);
+        let random_filled_floor =
+            FloorBuilder::<Blank>::blank(50.try_into().unwrap(), 100.try_into().unwrap());
         let formatted = random_filled_floor._pretty(vec![], vec![]);
 
         println!("{}", &formatted)

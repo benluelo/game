@@ -1,6 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, SamplingMode};
 use game::dungeon::{Dungeon, DungeonType};
-use std::num::NonZeroUsize;
+use std::{convert::TryInto, num::NonZeroUsize};
 
 fn bench_dungeon_generation(c: &mut Criterion) {
     let mut group = c.benchmark_group("bench_dungeon_generation");
@@ -9,8 +9,8 @@ fn bench_dungeon_generation(c: &mut Criterion) {
     group.bench_function("50 by 100", |b| {
         b.iter(|| {
             let _ = Dungeon::new(
-                black_box(50),
-                black_box(100),
+                black_box(50.try_into().unwrap()),
+                black_box(100.try_into().unwrap()),
                 NonZeroUsize::new(10).unwrap(),
                 DungeonType::Cave,
             );
@@ -19,8 +19,8 @@ fn bench_dungeon_generation(c: &mut Criterion) {
     group.bench_function("100 by 200", |b| {
         b.iter(|| {
             let _ = Dungeon::new(
-                black_box(100),
-                black_box(200),
+                black_box(100.try_into().unwrap()),
+                black_box(200.try_into().unwrap()),
                 NonZeroUsize::new(10).unwrap(),
                 DungeonType::Cave,
             );
@@ -29,8 +29,8 @@ fn bench_dungeon_generation(c: &mut Criterion) {
     group.bench_function("50 by 50, 100 floors", |b| {
         b.iter(|| {
             let _ = Dungeon::new(
-                black_box(50),
-                black_box(50),
+                black_box(50.try_into().unwrap()),
+                black_box(50.try_into().unwrap()),
                 NonZeroUsize::new(100).unwrap(),
                 DungeonType::Cave,
             );
