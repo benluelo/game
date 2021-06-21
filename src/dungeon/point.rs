@@ -1,4 +1,4 @@
-use crate::dungeon::floor_builder::{bounded_int::BoundedInt, MAX_FLOOR_SIZE};
+use crate::{bounded_int::BoundedInt, dungeon::floor_builder::MAX_FLOOR_SIZE};
 
 #[derive(
     Debug,

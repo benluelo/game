@@ -1,4 +1,4 @@
-use crate::dungeon::floor_builder::bounded_int::iter::{BoundedIntRange, BoundedIntRangeInclusive};
+use crate::bounded_int::iter::{BoundedIntRange, BoundedIntRangeInclusive};
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 
@@ -19,12 +19,22 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     pub const HIGH: i32 = HIGH;
 
     pub fn new_clamped(n: i32) -> Self {
-        assert!(LOW < HIGH);
+        assert!(
+            LOW < HIGH,
+            "LOW must be less than HIGH. LOW: {}, HIGH: {}",
+            LOW,
+            HIGH
+        );
         BoundedInt(n.min(Self::HIGH).max(Self::LOW))
     }
 
     pub fn new(n: i32) -> Result<Self, BoundedIntError> {
-        assert!(LOW < HIGH);
+        assert!(
+            LOW < HIGH,
+            "LOW must be less than HIGH. LOW: {}, HIGH: {}",
+            LOW,
+            HIGH
+        );
         match n {
             n if n < Self::LOW => Err(BoundedIntError::TooLow(n)),
             n if n > Self::HIGH => Err(BoundedIntError::TooHigh(n)),
@@ -67,12 +77,22 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     }
 
     pub fn expand_upper<const HIGHER: i32>(self) -> BoundedInt<{ LOW }, { HIGHER }> {
-        assert!(HIGHER > HIGH);
+        assert!(
+            HIGHER > HIGH,
+            "HIGHER must be greater than HIGH. HIGHER: {}, HIGH: {}",
+            HIGHER,
+            HIGH
+        );
         BoundedInt(self.0)
     }
 
     pub fn expand_lower<const LOWER: i32>(self) -> BoundedInt<{ LOWER }, { HIGH }> {
-        assert!(LOWER < LOW);
+        assert!(
+            LOWER < LOW,
+            "LOWER must be less than LOW. LOWER: {}, LOW: {}",
+            LOWER,
+            LOW
+        );
         BoundedInt(self.0)
     }
 
@@ -89,7 +109,12 @@ impl<const LOW: i32, const HIGH: i32> TryFrom<i32> for BoundedInt<{ LOW }, { HIG
     type Error = BoundedIntError;
 
     fn try_from(value: i32) -> Result<Self, Self::Error> {
-        assert!(LOW < HIGH);
+        assert!(
+            LOW < HIGH,
+            "LOW must be less than HIGH. LOW: {}, HIGH: {}",
+            LOW,
+            HIGH
+        );
         match value {
             n if n < Self::LOW => Err(BoundedIntError::TooLow(n)),
             n if n > Self::HIGH => Err(BoundedIntError::TooHigh(n)),

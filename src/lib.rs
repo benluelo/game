@@ -4,6 +4,7 @@ use dungeon::DungeonType;
 
 pub use crate::dungeon::Dungeon;
 
+pub(crate) mod bounded_int;
 mod command;
 pub mod dungeon;
 mod example;

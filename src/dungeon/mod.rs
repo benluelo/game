@@ -1,22 +1,20 @@
 pub mod dungeon_tile;
 mod floor_builder;
 // use ansi_term::ANSIStrings;
-use core::fmt;
-use std::collections::HashSet;
-use std::iter;
+use std::{collections::HashSet, fmt, iter, num::NonZeroUsize, usize};
 // use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
-use std::{num::NonZeroUsize, usize};
 
 pub use crate::dungeon::dungeon_tile::DungeonTile;
-use crate::dungeon::floor_builder::bounded_int::BoundedInt;
-use crate::dungeon::floor_builder::MAX_FLOOR_SIZE;
-use crate::dungeon::floor_builder::MIN_FLOOR_SIZE;
 
-pub use self::floor_builder::floor_builder_state::Blank;
-pub use self::floor_builder::FloorBuilder;
+pub use self::floor_builder::{floor_builder_state::Blank, FloorBuilder};
 pub use point::*;
 mod point;
+
+use crate::{
+    bounded_int::BoundedInt,
+    dungeon::floor_builder::{MAX_FLOOR_SIZE, MIN_FLOOR_SIZE},
+};
 
 #[derive(Debug, Clone)]
 pub(crate) struct ConnectionPath {

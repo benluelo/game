@@ -1,4 +1,4 @@
-use crate::dungeon::floor_builder::bounded_int::BoundedInt;
+use crate::bounded_int::BoundedInt;
 use std::ops::{Add, Deref, Sub};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

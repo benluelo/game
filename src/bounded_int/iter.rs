@@ -1,6 +1,5 @@
+use crate::bounded_int::BoundedInt;
 use std::{cmp::Ordering, convert::TryInto};
-
-use crate::dungeon::floor_builder::bounded_int::BoundedInt;
 
 pub struct BoundedIntRangeInclusive<const LOW: i32, const HIGH: i32> {
     // start: BoundedInt<{ LOW }, { HIGH }>,

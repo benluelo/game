@@ -1,9 +1,7 @@
-use crate::dungeon::{
-    distance,
-    dungeon_tile::DungeonTile,
-    floor_builder::{bounded_int::BoundedInt, floor_builder_state::*},
-    Border, BorderId, Column, Connection, ConnectionPath, ConnectionPathLength, Floor, Point, Row,
-};
+use crate::{bounded_int::BoundedInt, dungeon::{
+    distance, dungeon_tile::DungeonTile, floor_builder::floor_builder_state::*, Border, BorderId,
+    Column, Connection, ConnectionPath, ConnectionPathLength, Floor, Point, Row,
+}};
 use ansi_term::ANSIStrings;
 use itertools::Itertools;
 use noise::{Billow, MultiFractal, NoiseFn, Seedable};
@@ -22,7 +20,6 @@ use std::{
     iter,
 };
 
-pub mod bounded_int;
 pub mod floor_builder_state;
 
 pub const MIN_FLOOR_SIZE: i32 = 10;
@@ -448,8 +445,12 @@ impl FloorBuilder<HasBorders> {
 
 impl FloorBuilder<Smoothed> {
     fn get_cave_borders(self) -> FloorBuilder<HasBorders> {
-        let mut already_visited =
-            vec![false; (self.width.as_unbounded() * self.height.as_unbounded()).try_into().unwrap()];
+        let mut already_visited = vec![
+            false;
+            (self.width.as_unbounded() * self.height.as_unbounded())
+                .try_into()
+                .unwrap()
+        ];
 
         let mut borders = vec![];
 
@@ -599,8 +600,18 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
         FloorBuilder {
             width,
             height,
-            map: vec![Default::default(); (width.as_unbounded() * height.as_unbounded()).try_into().unwrap()],
-            noise_map: vec![Default::default(); (width.as_unbounded() * height.as_unbounded()).try_into().unwrap()],
+            map: vec![
+                Default::default();
+                (width.as_unbounded() * height.as_unbounded())
+                    .try_into()
+                    .unwrap()
+            ],
+            noise_map: vec![
+                Default::default();
+                (width.as_unbounded() * height.as_unbounded())
+                    .try_into()
+                    .unwrap()
+            ],
             extra: Blank {},
         }
     }
