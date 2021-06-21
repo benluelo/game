@@ -1,6 +1,7 @@
 use crate::bounded_int::iter::{BoundedIntRange, BoundedIntRangeInclusive};
+use num_traits::SaturatingAdd;
 use serde::{Deserialize, Serialize};
-use std::convert::TryFrom;
+use std::convert::{TryFrom, TryInto};
 
 mod iter;
 mod ops;
@@ -35,17 +36,36 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
             LOW,
             HIGH
         );
-        match n {
-            n if n < Self::LOW => Err(BoundedIntError::TooLow(n)),
-            n if n > Self::HIGH => Err(BoundedIntError::TooHigh(n)),
-            n => Ok(BoundedInt(n)),
-        }
+
+        n.try_into()
     }
 
     pub fn as_unbounded(&self) -> i32 {
         self.0
     }
 
+    /// Returns a [BoundedIntRange] from `self` to `to`.
+    ///
+    /// If `to` <= `self`, the iterator will be empty.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use game::bounded_int::BoundedInt;
+    ///
+    /// let start = BoundedInt::<10, 15>::new(10).unwrap();
+    /// let end = BoundedInt::<10, 15>::new(15).unwrap();
+    ///
+    /// assert_eq!(
+    ///     start.range_to(&end).collect::<Vec<_>>(),
+    ///     &[
+    ///         BoundedInt::<10, 15>::new(10).unwrap(),
+    ///         BoundedInt::<10, 15>::new(11).unwrap(),
+    ///         BoundedInt::<10, 15>::new(12).unwrap(),
+    ///         BoundedInt::<10, 15>::new(13).unwrap(),
+    ///         BoundedInt::<10, 15>::new(14).unwrap(),
+    ///     ]
+    /// );
+    /// ```
     pub fn range_to(&self, to: &Self) -> BoundedIntRange<{ LOW }, { HIGH }> {
         BoundedIntRange {
             end: *to,
@@ -53,6 +73,28 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
         }
     }
 
+    /// Returns a [BoundedIntRange] from `from` to `self`.
+    ///
+    /// If `self` <= `from`, the iterator will be empty.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use game::bounded_int::BoundedInt;
+    ///
+    /// let start = BoundedInt::<10, 15>::new(10).unwrap();
+    /// let end = BoundedInt::<10, 15>::new(15).unwrap();
+    ///
+    /// assert_eq!(
+    ///     end.range_from(&start).collect::<Vec<_>>(),
+    ///     &[
+    ///         BoundedInt::<10, 15>::new(10).unwrap(),
+    ///         BoundedInt::<10, 15>::new(11).unwrap(),
+    ///         BoundedInt::<10, 15>::new(12).unwrap(),
+    ///         BoundedInt::<10, 15>::new(13).unwrap(),
+    ///         BoundedInt::<10, 15>::new(14).unwrap(),
+    ///     ]
+    /// );
+    /// ```
     pub fn range_from(&self, from: &Self) -> BoundedIntRange<{ LOW }, { HIGH }> {
         BoundedIntRange {
             end: *self,
@@ -60,6 +102,30 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
         }
     }
 
+    /// Returns a [BoundedIntRangeInclusive] from `self` to `to`.
+    ///
+    /// If `to` <= `self`, the iterator will be empty.
+    /// If `to` == `self`, the iterator will produce one item equal to `self`.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use game::bounded_int::BoundedInt;
+    ///
+    /// let start = BoundedInt::<10, 15>::new(10).unwrap();
+    /// let end = BoundedInt::<10, 15>::new(15).unwrap();
+    ///
+    /// assert_eq!(
+    ///     start.range_to_inclusive(&end).collect::<Vec<_>>(),
+    ///     &[
+    ///         BoundedInt::<10, 15>::new(10).unwrap(),
+    ///         BoundedInt::<10, 15>::new(11).unwrap(),
+    ///         BoundedInt::<10, 15>::new(12).unwrap(),
+    ///         BoundedInt::<10, 15>::new(13).unwrap(),
+    ///         BoundedInt::<10, 15>::new(14).unwrap(),
+    ///         BoundedInt::<10, 15>::new(15).unwrap(),
+    ///     ]
+    /// );
+    /// ```
     pub fn range_to_inclusive(&self, to: &Self) -> BoundedIntRangeInclusive<{ LOW }, { HIGH }> {
         BoundedIntRangeInclusive {
             end: *to,
@@ -68,6 +134,30 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
         }
     }
 
+    /// Returns a [BoundedIntRangeInclusive] from `from` to `self`.
+    ///
+    /// If `self` < `from`, the iterator will be empty.
+    /// If `self` == `from`, the iterator will produce one item equal to `self`.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use game::bounded_int::BoundedInt;
+    ///
+    /// let start = BoundedInt::<10, 15>::new(10).unwrap();
+    /// let end = BoundedInt::<10, 15>::new(15).unwrap();
+    ///
+    /// assert_eq!(
+    ///     end.range_from_inclusive(&start).collect::<Vec<_>>(),
+    ///     &[
+    ///         BoundedInt::<10, 15>::new(10).unwrap(),
+    ///         BoundedInt::<10, 15>::new(11).unwrap(),
+    ///         BoundedInt::<10, 15>::new(12).unwrap(),
+    ///         BoundedInt::<10, 15>::new(13).unwrap(),
+    ///         BoundedInt::<10, 15>::new(14).unwrap(),
+    ///         BoundedInt::<10, 15>::new(15).unwrap(),
+    ///     ]
+    /// );
+    /// ```
     pub fn range_from_inclusive(&self, from: &Self) -> BoundedIntRangeInclusive<{ LOW }, { HIGH }> {
         BoundedIntRangeInclusive {
             end: *self,
@@ -76,30 +166,92 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
         }
     }
 
+    /// Raises the upper bounds of the BoundedInt to `HIGHER`.
+    /// # Examples
+    /// ```rust
+    /// use game::bounded_int::BoundedInt;
+    ///
+    /// let small_bounds = BoundedInt::<10, 15>::new(10).unwrap();
+    ///
+    /// fn requires_larger_bounds(b: BoundedInt::<10, 20>) { }
+    ///
+    /// // type inference makes this very simple to call
+    /// requires_larger_bounds(small_bounds.expand_upper());
+    ///```
     pub fn expand_upper<const HIGHER: i32>(self) -> BoundedInt<{ LOW }, { HIGHER }> {
         assert!(
-            HIGHER > HIGH,
-            "HIGHER must be greater than HIGH. HIGHER: {}, HIGH: {}",
+            HIGHER >= HIGH,
+            "HIGHER must be greater than or equal to HIGH. HIGHER: {}, HIGH: {}",
             HIGHER,
             HIGH
         );
         BoundedInt(self.0)
     }
 
+    /// Increases the lower bounds of the BoundedInt to `LOWER`.
+    /// # Examples
+    /// ```rust
+    /// use game::bounded_int::BoundedInt;
+    ///
+    /// let small_bounds = BoundedInt::<10, 15>::new(10).unwrap();
+    ///
+    /// fn requires_larger_bounds(b: BoundedInt::<5, 15>) { }
+    ///
+    /// // type inference makes this very simple to call
+    /// requires_larger_bounds(small_bounds.expand_lower());
+    ///```
     pub fn expand_lower<const LOWER: i32>(self) -> BoundedInt<{ LOWER }, { HIGH }> {
         assert!(
-            LOWER < LOW,
-            "LOWER must be less than LOW. LOWER: {}, LOW: {}",
+            LOWER <= LOW,
+            "LOWER must be less than or equal to LOW. LOWER: {}, LOW: {}",
             LOWER,
             LOW
         );
         BoundedInt(self.0)
     }
 
+    /// Expands the bounds of the BoundedInt to `LOWER` and `HIGHER`.
+    /// # Examples
+    /// ```rust
+    /// use game::bounded_int::BoundedInt;
+    ///
+    /// let small_bounds = BoundedInt::<10, 15>::new(10).unwrap();
+    ///
+    /// fn requires_larger_bounds(b: BoundedInt::<5, 20>) { }
+    ///
+    /// // type inference makes this very simple to call
+    /// requires_larger_bounds(small_bounds.expand_bounds());
+    ///```
+    pub fn expand_bounds<const LOWER: i32, const HIGHER: i32>(
+        self,
+    ) -> BoundedInt<{ LOWER }, { HIGHER }> {
+        assert!(
+            LOWER <= LOW,
+            "LOWER must be less than or equal to LOW. LOWER: {}, LOW: {}",
+            LOWER,
+            LOW
+        );
+        assert!(
+            HIGHER >= HIGH,
+            "HIGHER must be greater than or equal to HIGH. HIGHER: {}, HIGH: {}",
+            HIGHER,
+            HIGH
+        );
+        assert!(
+            LOWER < HIGHER,
+            "LOWER must be less than HIGHER. LOWER: {}, HIGHER: {}",
+            LOWER,
+            HIGHER
+        );
+        BoundedInt(self.0)
+    }
+
+    /// Performs subtraction that saturates at the numeric bounds instead of overflowing.
     pub fn saturating_sub(&self, rhs: i32) -> Self {
         Self::new_clamped(self.0 - rhs)
     }
 
+    /// Performs addition that saturates at the numeric bounds instead of overflowing.
     pub fn saturating_add(&self, rhs: i32) -> Self {
         Self::new_clamped(self.0 + rhs)
     }
@@ -115,10 +267,12 @@ impl<const LOW: i32, const HIGH: i32> TryFrom<i32> for BoundedInt<{ LOW }, { HIG
             LOW,
             HIGH
         );
-        match value {
-            n if n < Self::LOW => Err(BoundedIntError::TooLow(n)),
-            n if n > Self::HIGH => Err(BoundedIntError::TooHigh(n)),
-            n => Ok(BoundedInt(n)),
+        if value < Self::LOW {
+            Err(BoundedIntError::TooLow(value))
+        } else if value > Self::HIGH {
+            Err(BoundedIntError::TooHigh(value))
+        } else {
+            Ok(BoundedInt(value))
         }
     }
 }
@@ -129,8 +283,8 @@ mod test_bounded_int {
 
     #[test]
     fn test_range_to() {
-        let start = BoundedInt::<0, 100>::new(20).unwrap();
-        let end = BoundedInt::<0, 100>::new(25).unwrap();
+        let start = BoundedInt::<20, 25>::new(20).unwrap();
+        let end = BoundedInt::<20, 25>::new(25).unwrap();
 
         let v: Vec<_> = start.range_to(&end).collect();
 

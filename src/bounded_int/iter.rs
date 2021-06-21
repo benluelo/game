@@ -24,7 +24,7 @@ impl<const LOW: i32, const HIGH: i32> Iterator for BoundedIntRangeInclusive<{ LO
             }
             Ordering::Less => {
                 let to_return = self.pointer;
-                self.pointer = (self.pointer + 1_i32.try_into().unwrap()).unwrap();
+                self.pointer = (self.pointer.as_unbounded() + 1_i32).try_into().unwrap();
                 Some(to_return)
             }
         }
@@ -41,12 +41,13 @@ impl<const LOW: i32, const HIGH: i32> Iterator for BoundedIntRange<{ LOW }, { HI
     type Item = BoundedInt<{ LOW }, { HIGH }>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.pointer == self.end {
-            None
-        } else {
-            let to_return = self.pointer;
-            self.pointer = (self.pointer + 1_i32.try_into().unwrap()).unwrap();
-            Some(to_return)
+        match self.pointer.cmp(&self.end) {
+            Ordering::Greater | Ordering::Equal => None,
+            Ordering::Less => {
+                let to_return = self.pointer;
+                self.pointer = (self.pointer.as_unbounded() + 1_i32).try_into().unwrap();
+                Some(to_return)
+            }
         }
     }
 }
