@@ -1,5 +1,4 @@
 use crate::bounded_int::iter::{BoundedIntRange, BoundedIntRangeInclusive};
-use num_traits::SaturatingAdd;
 use serde::{Deserialize, Serialize};
 use std::convert::{TryFrom, TryInto};
 

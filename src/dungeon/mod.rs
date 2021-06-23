@@ -1,5 +1,6 @@
 pub mod dungeon_tile;
 mod floor_builder;
+pub mod point_index;
 // use ansi_term::ANSIStrings;
 use std::{collections::HashSet, fmt, iter, num::NonZeroUsize, usize};
 // use rayon::iter::{IntoParallelIterator, ParallelIterator};

@@ -1,7 +1,11 @@
-use crate::{bounded_int::BoundedInt, dungeon::{
-    distance, dungeon_tile::DungeonTile, floor_builder::floor_builder_state::*, Border, BorderId,
-    Column, Connection, ConnectionPath, ConnectionPathLength, Floor, Point, Row,
-}};
+use crate::{
+    bounded_int::BoundedInt,
+    dungeon::{
+        distance, dungeon_tile::DungeonTile, floor_builder::floor_builder_state::*,
+        point_index::PointIndex, Border, BorderId, Column, Connection, ConnectionPath,
+        ConnectionPathLength, Floor, Point, Row,
+    },
+};
 use ansi_term::ANSIStrings;
 use itertools::Itertools;
 use noise::{Billow, MultiFractal, NoiseFn, Seedable};
@@ -24,6 +28,7 @@ pub mod floor_builder_state;
 
 pub const MIN_FLOOR_SIZE: i32 = 10;
 pub const MAX_FLOOR_SIZE: i32 = 200;
+const RANDOM_FILL_WALL_CHANCE: u8 = 52;
 
 /// Represents a floor of a dungeon
 /// See http://roguebasin.roguelikedevelopment.org/index.php?title=Cellular_Automata_Method_for_Generating_Random_Cave-Like_Levels
@@ -41,7 +46,7 @@ impl FloorBuilder<New> {
         width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
         height: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
     ) -> Floor {
-        let fb = FloorBuilder::<Blank>::blank(width, height)
+        FloorBuilder::<Blank>::blank(width, height)
             .random_fill()
             .smoothen(3, |r| r < 4)
             .get_cave_borders()
@@ -49,8 +54,8 @@ impl FloorBuilder<New> {
             .trace_connection_paths(true, true)
             .draw(|_, _, _| DungeonTile::Empty)
             .smoothen(7, |_| false)
-            .check_for_secret_passages();
-        fb.finish()
+            .check_for_secret_passages()
+            .finish()
     }
 }
 
@@ -71,7 +76,6 @@ impl FloorBuilder<Blank> {
         let noise = Billow::new().set_seed(rng.gen()).set_persistence(128.0);
 
         // build initial maps (walls and noise)
-        // TODO: extract magic numbers to contants
         for column in self
             .width
             .expand_lower::<0>()
@@ -86,19 +90,23 @@ impl FloorBuilder<Blank> {
                     column: Column::new(column),
                     row: Row::new(row),
                 };
-                let float = noise.get([
+
+                *self.noise_map.at_mut(point, self.width) = ((noise.get([
                     (column.as_unbounded() as f64 / self.width.as_unbounded() as f64) + 0.1,
                     (row.as_unbounded() as f64 / self.height.as_unbounded() as f64) + 0.1,
-                ]) + 0.001;
-                *self.noise_map.at_mut(point, self.width) =
-                    (float.abs() * 10000.0).powi(2).floor() as u128;
+                ]) + 0.001)
+                    .abs()
+                    * 10000.0)
+                    .powi(2)
+                    .floor() as u128;
 
                 // make a wall some percent of the time
-                *self.map.at_mut(point, self.width) = if 52 >= rng.gen_range(0..101) {
-                    DungeonTile::Wall
-                } else {
-                    DungeonTile::Empty
-                }
+                *self.map.at_mut(point, self.width) =
+                    if rng.gen_range(0..=100) <= RANDOM_FILL_WALL_CHANCE {
+                        DungeonTile::Wall
+                    } else {
+                        DungeonTile::Empty
+                    }
             }
         }
 
@@ -106,11 +114,10 @@ impl FloorBuilder<Blank> {
 
         // ANCHOR: dijkstra
         // find path through noise map and apply path to walls map
-        let goal = dbg!(Point {
+        let goal = Point {
             row: Row::new(self.height.expand_lower()).saturating_sub(4),
-            // row: Row::new((self.height.expand_lower::<0>() - 4.try_into().unwrap()).unwrap()),
             column: Column::new(self.width.expand_lower::<0>()).saturating_sub(4),
-        });
+        };
 
         let (found_path, _) = dijkstra(
             &Point {
@@ -190,7 +197,8 @@ impl FloorBuilder<Drawable> {
 }
 
 impl FloorBuilder<HasConnections> {
-    /// takes the connections from [`FloorBuilder::build_connections`] and traces paths between them, leaving the paths in the `to_draw` state of `FloorBuilder<Drawable>`.
+    /// takes the connections from [`FloorBuilder::build_connections`] and traces paths
+    /// between them, leaving the paths in the `to_draw` state of `FloorBuilder<Drawable>`.
     fn trace_connection_paths(self, wide: bool, use_noise_map: bool) -> FloorBuilder<Drawable> {
         let all_border_points = self
             .extra
@@ -222,7 +230,7 @@ impl FloorBuilder<HasConnections> {
                             })
                     },
                     |&point| {
-                        (!self.is_out_of_bounds_usize(point) && (point == to))
+                        (!self.is_out_of_bounds(point) && (point == to))
                             || matches!(
                                 self.map.at(point, self.width),
                                 &DungeonTile::SecretDoor { .. } | &DungeonTile::SecretPassage
@@ -674,17 +682,11 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
 
     fn is_out_of_bounds(&self, point: Point) -> bool {
         // REVIEW: points can't be 0
-        // (point.column.get() < 0 || point.row.get() < 0)
-        //     ||
-        point.column.get() > self.width.saturating_sub(1).expand_lower()
-            || point.row.get() > self.height.saturating_sub(1).expand_lower()
+        (point.column.get() < 1.try_into().unwrap() || point.row.get() < 1.try_into().unwrap())
+            || (point.column.get() > self.width.saturating_sub(1).expand_lower()
+                || point.row.get() > self.height.saturating_sub(1).expand_lower())
     }
 
-    fn is_out_of_bounds_usize(&self, point: Point) -> bool {
-        self.is_out_of_bounds(point)
-    }
-
-    // TODO: remove use of i64
     fn get_legal_neighbors(&self, point: Point) -> impl Iterator<Item = Point> + '_ {
         #[rustfmt::skip]
         let v = vec![
@@ -735,105 +737,5 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
             })
             .collect::<Vec<_>>()
             .join("\n")
-    }
-}
-
-trait PointIndex<T> {
-    type Output;
-    fn at<const L: i32, const H: i32>(
-        &self,
-        point: Point,
-        width: BoundedInt<{ L }, { H }>,
-    ) -> &Self::Output;
-    fn at_mut<const L: i32, const H: i32>(
-        &mut self,
-        point: Point,
-        width: BoundedInt<{ L }, { H }>,
-    ) -> &mut Self::Output;
-}
-
-impl<T /* , const L: i32, const H: i32 */> PointIndex<T> for Vec<T> {
-    type Output = T;
-
-    fn at<const L: i32, const H: i32>(
-        &self,
-        point: Point,
-        width: BoundedInt<{ L }, { H }>,
-    ) -> &Self::Output {
-        &self[((*point.row.get() * *width) + *point.column.get()) as usize]
-    }
-
-    fn at_mut<const L: i32, const H: i32>(
-        &mut self,
-        point: Point,
-        width: BoundedInt<{ L }, { H }>,
-    ) -> &mut Self::Output {
-        &mut self[((*point.row.get() * *width) + *point.column.get()) as usize]
-    }
-}
-
-#[cfg(test)]
-mod test_point_index {
-    use super::*;
-
-    #[test]
-    fn test_point_index() {
-        const WIDTH: i32 = 10;
-        const HEIGHT: i32 = 20;
-        #[rustfmt::skip]
-        const MAP: [i32; (WIDTH * HEIGHT) as usize] = [
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        ];
-
-        let mut map = Vec::from(MAP);
-
-        assert!(matches!(
-            map.at(
-                Point {
-                    row: Row(3.try_into().unwrap()),
-                    column: Column(4.try_into().unwrap()),
-                },
-                BoundedInt::<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>::new(WIDTH).unwrap()
-            ),
-            &1
-        ));
-
-        *map.at_mut(
-            Point {
-                row: Row(7.try_into().unwrap()),
-                column: Column(2.try_into().unwrap()),
-            },
-            BoundedInt::<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>::new(WIDTH).unwrap(),
-        ) = 1;
-
-        assert!(matches!(
-            map.at(
-                Point {
-                    row: Row(7.try_into().unwrap()),
-                    column: Column(2.try_into().unwrap()),
-                },
-                BoundedInt::<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>::new(WIDTH).unwrap(),
-            ),
-            &1
-        ));
     }
 }
