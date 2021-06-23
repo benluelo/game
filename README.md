@@ -1,4 +1,4 @@
-# A backend for my games
+# A backend for my game
 
 Writing top level headings is hard.
 
