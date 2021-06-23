@@ -220,8 +220,8 @@ pub enum DungeonType {
 }
 
 fn distance(from: Point, to: Point) -> f64 {
-    (((*from.row.get() - *to.row.get()).pow(2) + (*from.column.get() - *to.column.get()).pow(2))
-        as f64)
+    (((from.row.get().as_unbounded() - to.row.get().as_unbounded()).pow(2)
+        + (from.column.get().as_unbounded() - to.column.get().as_unbounded()).pow(2)) as f64)
         .sqrt()
 }
 

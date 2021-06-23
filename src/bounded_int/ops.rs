@@ -1,5 +1,5 @@
 use crate::bounded_int::BoundedInt;
-use std::ops::{Add, Deref, Sub};
+use std::ops::{Add, Sub};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BoundedIntOverflow {
@@ -54,11 +54,3 @@ impl<const LOW: i32, const HIGH: i32> Sub for BoundedInt<{ LOW }, { HIGH }> {
 //         }
 //     }
 // }
-
-impl<const LOW: i32, const HIGH: i32> Deref for BoundedInt<{ LOW }, { HIGH }> {
-    type Target = i32;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
