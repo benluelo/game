@@ -1,58 +1,18 @@
-use std::{collections::HashMap, fmt};
+///! All the valid states a floor builder may be in. each module contains it's own state,
+///! and the `impl`s found in each module represent the valid transitions for each state.
 
-use crate::dungeon::{Border, BorderId, ConnectionPath, Point};
-
+/// Marker trait for possible states for a floor builder to be in, along with their associated data.
 pub trait FloorBuilderState {}
+
+/// Marker trait for floor builder states that can be [`FloorBuilder::smoothed`]
 pub trait Smoothable: FloorBuilderState {}
 
-pub trait DebugIterator: Iterator<Item = Point> + fmt::Debug {}
-
-impl<T> DebugIterator for T where T: Iterator<Item = Point> + fmt::Debug {}
-
-#[derive(Debug)]
-pub(super) struct Drawable {
-    pub(super) to_draw: Vec<ConnectionPath>,
-}
-impl FloorBuilderState for Drawable {}
-
-#[derive(Debug)]
-pub(super) struct Smoothed {}
-impl FloorBuilderState for Smoothed {}
-
-#[derive(Debug)]
-pub struct New {}
-impl FloorBuilderState for New {}
-
-#[derive(Debug)]
-pub(super) struct Buildable {}
-impl FloorBuilderState for Buildable {}
-
-#[derive(Debug)]
-pub(super) struct HasBorders {
-    pub(super) borders: Vec<Border>,
-}
-impl FloorBuilderState for HasBorders {}
-
-#[derive(Debug, Default)]
-pub(super) struct HasConnections {
-    pub(super) connections: HashMap<(Point, BorderId), (Point, BorderId)>,
-    pub(super) borders: HashMap<BorderId, Border>,
-}
-impl FloorBuilderState for HasConnections {}
-
-/// A blank floor builder, with all values in the floor map and the noise map set to their default.
-#[derive(Debug)]
-pub struct Blank {}
-impl FloorBuilderState for Blank {}
-
-// The final state of the floor builder.
-#[derive(Debug)]
-pub struct Filled {}
-impl FloorBuilderState for Filled {}
-impl Smoothable for Filled {}
-
-// The final state of the floor builder.
-#[derive(Debug)]
-pub struct Done {}
-impl FloorBuilderState for Done {}
-impl Smoothable for Done {}
+pub(in crate::dungeon) mod new;
+pub(in crate::dungeon::floor_builder) mod blank;
+pub(in crate::dungeon::floor_builder) mod buildable;
+pub(in crate::dungeon::floor_builder) mod done;
+pub(in crate::dungeon::floor_builder) mod drawable;
+pub(in crate::dungeon::floor_builder) mod filled;
+pub(in crate::dungeon::floor_builder) mod has_borders;
+pub(in crate::dungeon::floor_builder) mod has_connections;
+pub(in crate::dungeon::floor_builder) mod smoothed;

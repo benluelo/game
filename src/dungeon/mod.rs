@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 pub use crate::dungeon::dungeon_tile::DungeonTile;
 
-pub use self::floor_builder::{floor_builder_state::Blank, FloorBuilder};
+pub use self::floor_builder::{FloorBuilder};
 pub use point::*;
 mod point;
 
@@ -253,24 +253,6 @@ mod test_dungeon {
         fs::write("./test.json", contents_json).unwrap();
 
         rmp_serde::from_read_ref::<_, Dungeon>(&contents).unwrap();
-    }
-
-    #[test]
-    pub(crate) fn test_blank_floor_generation() {
-        let blank_floor =
-            FloorBuilder::<Blank>::blank(10.try_into().unwrap(), 10.try_into().unwrap());
-
-        assert!(blank_floor.height.as_unbounded() == 10);
-        assert!(blank_floor.width.as_unbounded() == 10);
-    }
-
-    #[test]
-    pub(crate) fn test_random_fill_generation() {
-        let random_filled_floor =
-            FloorBuilder::<Blank>::blank(50.try_into().unwrap(), 100.try_into().unwrap());
-        let formatted = random_filled_floor._pretty(vec![], vec![]);
-
-        println!("{}", &formatted)
     }
 
     // #[test]
