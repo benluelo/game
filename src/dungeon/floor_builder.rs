@@ -156,8 +156,8 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
         counter
     }
 
+    /// Considers out-of-bounds a wall
     fn is_wall(&self, point: Point) -> bool {
-        // Consider out-of-bounds a wall
         if self.is_out_of_bounds(point) {
             return true;
         }
@@ -170,9 +170,9 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
 
     fn is_out_of_bounds(&self, point: Point) -> bool {
         // REVIEW: points can't be 0
-        (point.column.get() < 1.try_into().unwrap() || point.row.get() < 1.try_into().unwrap())
-            || (point.column.get() > self.width.saturating_sub(1).expand_lower()
-                || point.row.get() > self.height.saturating_sub(1).expand_lower())
+        (point.column.get() == 0.try_into().unwrap() || point.row.get() == 0.try_into().unwrap())
+            || (point.column.get() >= self.width.saturating_sub(1).expand_lower()
+                || point.row.get() >= self.height.saturating_sub(1).expand_lower())
     }
 
     fn get_legal_neighbors(&self, point: Point) -> impl Iterator<Item = Point> + '_ {

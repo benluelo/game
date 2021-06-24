@@ -63,7 +63,7 @@ impl FloorBuilder<Blank> {
         // find path through noise map and apply path to walls map
         let goal = Point {
             row: Row::new(self.height.expand_lower()).saturating_sub(4),
-            column: Column::new(self.width.expand_lower::<0>()).saturating_sub(4),
+            column: Column::new(self.width.expand_lower()).saturating_sub(4),
         };
 
         let (found_path, _) = dijkstra(
