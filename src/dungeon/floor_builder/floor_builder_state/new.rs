@@ -6,7 +6,7 @@ use crate::{
     },
 };
 
-use super::{FloorBuilderState, blank::Blank, has_borders::BuildConnectionIterations};
+use super::{blank::Blank, has_borders::BuildConnectionIterations, FloorBuilderState};
 #[derive(Debug)]
 pub struct New {}
 impl FloorBuilderState for New {}

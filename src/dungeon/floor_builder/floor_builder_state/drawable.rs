@@ -22,7 +22,7 @@ impl FloorBuilder<Drawable> {
             Point,
         ) -> DungeonTile,
     ) -> FloorBuilder<Filled> {
-        for path in self.extra.to_draw.into_iter() {
+        for path in self.extra.to_draw.clone().into_iter() {
             use ConnectionPathLength::*;
             match &path.path {
                 Length1 { point } => {
@@ -40,6 +40,8 @@ impl FloorBuilder<Drawable> {
 
                     for point in points {
                         *self.map.at_mut(*point, self.width) = draw_with(false, false, *point);
+
+                        self.frame_from_current_state(1);
                     }
                 }
             };
@@ -51,6 +53,7 @@ impl FloorBuilder<Drawable> {
             map: self.map,
             noise_map: self.noise_map,
             extra: Filled {},
+            frames: self.frames,
         }
     }
 }

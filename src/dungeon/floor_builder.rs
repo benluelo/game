@@ -9,7 +9,7 @@ use ansi_term::ANSIStrings;
 use itertools::Itertools;
 use pathfinding::prelude::dijkstra;
 
-use std::{convert::TryInto, fmt::Debug};
+use std::{borrow::Cow, convert::TryInto, fmt::Debug, vec};
 
 use self::floor_builder_state::{blank::Blank, smoothed::Smoothed};
 
@@ -28,6 +28,7 @@ pub struct FloorBuilder<S: FloorBuilderState> {
     pub(crate) map: Vec<DungeonTile>,
     pub(crate) noise_map: Vec<u128>,
     extra: S,
+    frames: Option<Vec<gif::Frame<'static>>>,
 }
 
 // #[cfg(test)]
@@ -77,6 +78,8 @@ impl<S: Smoothable> FloorBuilder<S> {
                         self.place_wall_logic(point, create_new_walls(r));
                 }
             }
+
+            self.frame_from_current_state(100);
         }
         FloorBuilder {
             width: self.width,
@@ -84,11 +87,26 @@ impl<S: Smoothable> FloorBuilder<S> {
             map: self.map,
             noise_map: self.noise_map,
             extra: Smoothed {},
+            frames: self.frames,
         }
     }
 }
 
 impl<S: FloorBuilderState> FloorBuilder<S> {
+    fn frame_from_current_state(&mut self, delay: u16) {
+        if let Some(ref mut frames) = self.frames {
+            println!("adding frame");
+            frames.push(gif::Frame {
+                width: self.width.as_unbounded() as u16,
+                height: self.height.as_unbounded() as u16,
+                buffer: Cow::Owned(self.map.iter().map(DungeonTile::as_u8).collect::<Vec<_>>()),
+                delay,
+                ..Default::default()
+            });
+        }
+    }
+
+    // ANCHOR state machine entry point
     pub(in crate::dungeon::floor_builder) fn blank(
         width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
         height: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
@@ -109,28 +127,35 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
                     .unwrap()
             ],
             extra: Blank {},
+            frames: Some(vec![]),
         }
     }
 
     /// will only return wall or empty
     fn place_wall_logic(&self, point: Point, create_new_walls: bool) -> DungeonTile {
+        use DungeonTile::{Empty, Wall};
+
+        if self.is_out_of_bounds(point) {
+            return Wall;
+        }
+
         let num_walls_1_away = self.get_adjacent_walls(point, 1, 1);
 
         if self.map.at(point, self.width).is_wall() {
             if num_walls_1_away >= 4 {
-                return DungeonTile::Wall;
+                return Wall;
             }
             if create_new_walls && self.get_adjacent_walls(point, 2, 2) < 2 {
-                return DungeonTile::Wall;
+                return Wall;
             }
             if num_walls_1_away < 2 {
-                return DungeonTile::Empty;
+                return Empty;
             }
         } else if num_walls_1_away >= 5 {
-            return DungeonTile::Wall;
+            return Wall;
         }
 
-        DungeonTile::Empty
+        Empty
     }
 
     pub fn get_adjacent_walls(&self, point: Point, distance_x: i32, distance_y: i32) -> usize {
@@ -170,9 +195,10 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
 
     fn is_out_of_bounds(&self, point: Point) -> bool {
         // REVIEW: points can't be 0
-        (point.column.get() == 0.try_into().unwrap() || point.row.get() == 0.try_into().unwrap())
-            || (point.column.get() >= self.width.saturating_sub(1).expand_lower()
-                || point.row.get() >= self.height.saturating_sub(1).expand_lower())
+        point.column.get() == 0.try_into().unwrap()
+            || point.row.get() == 0.try_into().unwrap()
+            || point.column.get() >= (self.width.as_unbounded() - 1).try_into().unwrap()
+            || point.row.get() >= (self.height.as_unbounded() - 1).try_into().unwrap()
     }
 
     fn get_legal_neighbors(&self, point: Point) -> impl Iterator<Item = Point> + '_ {
@@ -248,5 +274,71 @@ mod test_super {
         let formatted = random_filled_floor._pretty(vec![], vec![]);
 
         println!("{}", &formatted)
+    }
+
+    #[test]
+    fn test_is_out_of_bounds() {
+        let width = 10.try_into().unwrap();
+        let height = 15.try_into().unwrap();
+
+        let blank_floor = FloorBuilder::<Blank>::blank(width, height);
+
+        let mut new_vec = vec![false; (width.as_unbounded() * height.as_unbounded()) as usize];
+
+        for column in width.expand_lower().range_from(&0.try_into().unwrap()) {
+            for row in height.expand_lower().range_from(&0.try_into().unwrap()) {
+                let point = Point {
+                    column: Column::new(column),
+                    row: Row::new(row),
+                };
+                *new_vec.at_mut(point, width) = blank_floor.is_out_of_bounds(point);
+            }
+        }
+
+        println!("{}", print_vec_2d(new_vec, width));
+    }
+    #[test]
+    fn test_get_legal_neighbors() {
+        let width = 10.try_into().unwrap();
+        let height = 15.try_into().unwrap();
+
+        let blank_floor = FloorBuilder::<Blank>::blank(width, height);
+
+        let mut new_vec = vec![false; (width.as_unbounded() * height.as_unbounded()) as usize];
+
+        for column in width.expand_lower().range_from(&0.try_into().unwrap()) {
+            for row in height.expand_lower().range_from(&0.try_into().unwrap()) {
+                let point = Point {
+                    column: Column::new(column),
+                    row: Row::new(row),
+                };
+                *new_vec.at_mut(point, width) = blank_floor.is_out_of_bounds(point);
+            }
+        }
+
+        println!("{}", print_vec_2d(new_vec, width));
+    }
+}
+
+fn print_vec_2d<T: ToBlockDrawingCharacter>(
+    vec: Vec<T>,
+    width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
+) -> String {
+    vec.chunks(width.as_unbounded() as usize)
+        .map(|i| i.iter().map(|j| j.to_block()).collect::<String>())
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+pub trait ToBlockDrawingCharacter {
+    fn to_block(&self) -> &'static str;
+}
+
+impl ToBlockDrawingCharacter for bool {
+    fn to_block(&self) -> &'static str {
+        match self {
+            true => "██",
+            false => "░░",
+        }
     }
 }

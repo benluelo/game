@@ -39,6 +39,7 @@ impl FloorBuilder<HasBorders> {
                 extra: HasConnections {
                     ..Default::default()
                 },
+                frames: self.frames,
             };
         }
 
@@ -136,6 +137,7 @@ impl FloorBuilder<HasBorders> {
                             .collect(),
                         borders: self.extra.borders.into_iter().map(|b| (b.id, b)).collect(),
                     },
+                    frames: self.frames,
                 };
             };
         }
@@ -148,6 +150,7 @@ impl FloorBuilder<HasBorders> {
                 connections: connections_with_points,
                 borders: self.extra.borders.into_iter().map(|b| (b.id, b)).collect(),
             },
+            frames: self.frames,
         }
     }
 }

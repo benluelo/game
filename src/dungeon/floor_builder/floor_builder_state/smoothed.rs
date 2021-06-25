@@ -94,6 +94,7 @@ impl FloorBuilder<Smoothed> {
             width: self.width,
             map: self.map,
             noise_map: self.noise_map,
+            frames: self.frames,
         }
     }
 
@@ -105,15 +106,11 @@ impl FloorBuilder<Smoothed> {
         loop {
             // if there is more than 1 cave (border), find secret passages
             if self_with_borders.extra.borders.len() > 1 {
-                println!("building connections");
                 self_with_borders = self_with_borders
                     .build_connections(BuildConnectionIterations::FullyConnect)
                     .trace_connection_paths(false, false)
                     .draw(|is_first, is_last, _| {
                         if is_first || is_last {
-                            dbg!(is_first);
-                            dbg!(is_last);
-                            println!();
                             DungeonTile::SecretDoor { requires_key: true }
                         } else {
                             DungeonTile::SecretPassage
@@ -129,6 +126,7 @@ impl FloorBuilder<Smoothed> {
                     map: new_self.map,
                     noise_map: new_self.noise_map,
                     extra: Filled {},
+                    frames: new_self.frames,
                 };
             }
         }

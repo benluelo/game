@@ -1,4 +1,7 @@
-use std::convert::TryInto;
+use std::{
+    convert::TryInto,
+    ops::{Add, Mul},
+};
 
 use noise::{Billow, MultiFractal, NoiseFn, Seedable};
 use pathfinding::prelude::dijkstra;
@@ -17,7 +20,7 @@ pub(in crate::dungeon::floor_builder) struct Blank {}
 impl FloorBuilderState for Blank {}
 
 impl FloorBuilder<Blank> {
-    pub fn random_fill(mut self) -> FloorBuilder<Filled> {
+    pub(in crate::dungeon::floor_builder) fn random_fill(mut self) -> FloorBuilder<Filled> {
         let mut rng = thread_rng();
 
         let noise = Billow::new().set_seed(rng.gen()).set_persistence(128.0);
@@ -38,14 +41,21 @@ impl FloorBuilder<Blank> {
                     row: Row::new(row),
                 };
 
-                *self.noise_map.at_mut(point, self.width) = ((noise.get([
-                    (column.as_unbounded() as f64 / self.width.as_unbounded() as f64) + 0.1,
-                    (row.as_unbounded() as f64 / self.height.as_unbounded() as f64) + 0.1,
-                ]) + 0.001)
-                    .abs()
-                    * 10000.0)
-                    .powi(2)
-                    .floor() as u128;
+                if self.is_out_of_bounds(point) {
+                    *self.map.at_mut(point, self.width) = DungeonTile::Wall;
+                    continue;
+                }
+
+                *self.noise_map.at_mut(point, self.width) = ((noise
+                    .get([
+                        (column.as_unbounded() as f64 / self.width.as_unbounded() as f64) + 0.1,
+                        (row.as_unbounded() as f64 / self.height.as_unbounded() as f64) + 0.1,
+                    ])
+                    .add(0.001))
+                .abs()
+                .mul(10000.0))
+                .powi(2)
+                .floor() as u128;
 
                 // make a wall some percent of the time
                 *self.map.at_mut(point, self.width) =
@@ -56,6 +66,9 @@ impl FloorBuilder<Blank> {
                     }
             }
         }
+
+        // original noisy walls map
+        self.frame_from_current_state(100);
 
         // println!("{}\n", self.pretty(vec![], vec![]));
 
@@ -87,7 +100,10 @@ impl FloorBuilder<Blank> {
             {
                 *self.map.at_mut(neighbor, self.width) = DungeonTile::Empty;
             }
+            self.frame_from_current_state(1);
         }
+
+        self.frame_from_current_state(100);
 
         FloorBuilder {
             extra: Filled {},
@@ -95,6 +111,7 @@ impl FloorBuilder<Blank> {
             width: self.width,
             map: self.map,
             noise_map: self.noise_map,
+            frames: self.frames,
         }
     }
 }

@@ -110,6 +110,7 @@ impl FloorBuilder<HasConnections> {
             map: self.map,
             noise_map: self.noise_map,
             extra: Drawable { to_draw },
+            frames: self.frames,
         }
     }
 }
