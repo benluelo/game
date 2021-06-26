@@ -128,7 +128,8 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
                     .unwrap()
             ],
             extra: Blank {},
-            frames: Some(vec![]),
+            // frames: Some(vec![]),
+            frames: None,
         }
     }
 
