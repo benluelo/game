@@ -11,7 +11,7 @@ use crate::dungeon::{
     Border, BorderId, Column, DungeonTile, FloorBuilder, Point, Row,
 };
 
-use super::{filled::Filled, FloorBuilderState};
+use super::{filled::Filled, has_secret_connections::HasSecretPassages, FloorBuilderState};
 #[derive(Debug)]
 pub(in crate::dungeon::floor_builder) struct Smoothed {}
 impl FloorBuilderState for Smoothed {}
@@ -100,7 +100,7 @@ impl FloorBuilder<Smoothed> {
 
     pub(in crate::dungeon::floor_builder) fn check_for_secret_passages(
         self,
-    ) -> FloorBuilder<Filled> {
+    ) -> FloorBuilder<HasSecretPassages> {
         let mut self_with_borders = self.get_cave_borders();
 
         loop {
@@ -125,7 +125,7 @@ impl FloorBuilder<Smoothed> {
                     width: new_self.width,
                     map: new_self.map,
                     noise_map: new_self.noise_map,
-                    extra: Filled {},
+                    extra: HasSecretPassages {},
                     frames: new_self.frames,
                 };
             }

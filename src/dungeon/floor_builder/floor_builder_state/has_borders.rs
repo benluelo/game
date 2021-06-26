@@ -5,7 +5,7 @@ use petgraph::{algo::kosaraju_scc, data::FromElements, graphmap::UnGraphMap};
 
 use crate::dungeon::{distance, Border, BorderId, Connection, FloorBuilder, Point};
 
-use super::{has_connections::HasConnections, FloorBuilderState};
+use super::{drawable::Drawable, has_connections::HasConnections, FloorBuilderState};
 
 #[derive(Debug)]
 pub(in crate::dungeon::floor_builder) struct HasBorders {

@@ -47,7 +47,7 @@ impl FloorBuilder<HasConnections> {
                                 (
                                     p,
                                     if use_noise_map {
-                                        *self.noise_map.at(p, self.width)
+                                        *self.noise_map.at(p, self.width) as u32
                                     } else {
                                         1
                                     },

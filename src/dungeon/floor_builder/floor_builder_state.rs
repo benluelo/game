@@ -16,3 +16,4 @@ pub(in crate::dungeon::floor_builder) mod filled;
 pub(in crate::dungeon::floor_builder) mod has_borders;
 pub(in crate::dungeon::floor_builder) mod has_connections;
 pub(in crate::dungeon::floor_builder) mod smoothed;
+pub(in crate::dungeon::floor_builder) mod has_secret_connections;

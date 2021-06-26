@@ -23,6 +23,7 @@ derive_more = "0.99.13"
 num-traits = "0.2.14"
 num = "0.4.0"
 static_assertions = "1.1.0"
+image = "0.23.14"
 
 [dev-dependencies]
 serde_test = "1.0.125"

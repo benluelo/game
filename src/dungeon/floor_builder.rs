@@ -14,6 +14,7 @@ use std::{borrow::Cow, convert::TryInto, fmt::Debug, vec};
 use self::floor_builder_state::{blank::Blank, smoothed::Smoothed};
 
 mod floor_builder_state;
+mod to_block_character;
 
 pub const MIN_FLOOR_SIZE: i32 = 10;
 pub const MAX_FLOOR_SIZE: i32 = 200;
@@ -26,7 +27,7 @@ pub struct FloorBuilder<S: FloorBuilderState> {
     pub(crate) width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
     pub(crate) height: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
     pub(crate) map: Vec<DungeonTile>,
-    pub(crate) noise_map: Vec<u128>,
+    pub(crate) noise_map: Vec<u16>,
     extra: S,
     frames: Option<Vec<gif::Frame<'static>>>,
 }
@@ -256,6 +257,8 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
 
 #[cfg(test)]
 mod test_super {
+    use crate::dungeon::floor_builder::to_block_character::print_vec_2d;
+
     use super::*;
 
     #[test]
@@ -317,28 +320,5 @@ mod test_super {
         }
 
         println!("{}", print_vec_2d(new_vec, width));
-    }
-}
-
-fn print_vec_2d<T: ToBlockDrawingCharacter>(
-    vec: Vec<T>,
-    width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
-) -> String {
-    vec.chunks(width.as_unbounded() as usize)
-        .map(|i| i.iter().map(|j| j.to_block()).collect::<String>())
-        .collect::<Vec<_>>()
-        .join("\n")
-}
-
-pub trait ToBlockDrawingCharacter {
-    fn to_block(&self) -> &'static str;
-}
-
-impl ToBlockDrawingCharacter for bool {
-    fn to_block(&self) -> &'static str {
-        match self {
-            true => "██",
-            false => "░░",
-        }
     }
 }
