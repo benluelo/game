@@ -3,7 +3,10 @@ use std::{collections::HashMap, iter};
 
 use petgraph::{algo::kosaraju_scc, data::FromElements, graphmap::UnGraphMap};
 
-use crate::{distance, Border, BorderId, Connection, FloorBuilder, Point};
+use crate::{
+    border::{Border, BorderId},
+    distance, Connection, FloorBuilder, Point,
+};
 
 use super::{drawable::Drawable, has_connections::HasConnections, FloorBuilderState};
 

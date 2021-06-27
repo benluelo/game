@@ -4,15 +4,16 @@ use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 
 use crate::{
-    Border, BorderId, ConnectionPath, ConnectionPathLength, DungeonTile, FloorBuilder, Point,
+    border::{Border, BorderId},
+    connection_path::{ConnectionPath, ConnectionPathLength},
+    DungeonTile, FloorBuilder, Point,
 };
 
 use super::{drawable::Drawable, FloorBuilderState};
 
 #[derive(Debug, Default)]
 pub(in crate::floor_builder) struct HasConnections {
-    pub(in crate::floor_builder) connections:
-        HashMap<(Point, BorderId), (Point, BorderId)>,
+    pub(in crate::floor_builder) connections: HashMap<(Point, BorderId), (Point, BorderId)>,
     pub(in crate::floor_builder) borders: HashMap<BorderId, Border>,
 }
 impl FloorBuilderState for HasConnections {}

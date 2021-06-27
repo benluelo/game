@@ -4,9 +4,9 @@ use crate::{border::BorderId, Point};
 
 #[derive(Debug, Clone)]
 pub(crate) struct ConnectionPath {
-    start_border_id: BorderId,
-    end_border_id: BorderId,
-    path: ConnectionPathLength,
+    pub(crate) start_border_id: BorderId,
+    pub(crate) end_border_id: BorderId,
+    pub(crate) path: ConnectionPathLength,
 }
 
 #[allow(dead_code)]

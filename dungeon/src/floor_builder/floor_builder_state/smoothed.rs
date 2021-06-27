@@ -6,9 +6,10 @@ use std::{
 use rand::prelude::SliceRandom;
 
 use crate::{
+    border::{Border, BorderId},
     floor_builder::floor_builder_state::has_borders::{BuildConnectionIterations, HasBorders},
     point_index::PointIndex,
-    Border, BorderId, Column, DungeonTile, FloorBuilder, Point, Row,
+    Column, DungeonTile, FloorBuilder, Point, Row,
 };
 
 use super::{filled::Filled, has_secret_connections::HasSecretPassages, FloorBuilderState};

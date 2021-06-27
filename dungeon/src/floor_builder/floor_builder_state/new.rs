@@ -12,7 +12,7 @@ pub struct New {}
 impl FloorBuilderState for New {}
 
 impl FloorBuilder<New> {
-    pub(in crate::dungeon) fn create(
+    pub(in crate) fn create(
         width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
         height: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
     ) -> Floor {
