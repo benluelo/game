@@ -1,4 +1,5 @@
 use crate::iter::{BoundedIntRange, BoundedIntRangeInclusive};
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::convert::{TryFrom, TryInto};
 
@@ -41,6 +42,10 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
 
     pub fn as_unbounded(&self) -> i32 {
         self.0
+    }
+
+    pub fn random(rng: &mut impl Rng) -> Self {
+        BoundedInt(rng.gen_range(LOW..=HIGH))
     }
 
     /// Returns a [BoundedIntRange] from `self` to `to`.
@@ -327,7 +332,7 @@ mod test_bounded_int {
         let v: Vec<_> = end.range_from(&start).collect();
 
         assert!(matches!(
-            *dbg!(v),
+            *v,
             [
                 BoundedInt(20),
                 BoundedInt(21),

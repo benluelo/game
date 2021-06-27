@@ -56,6 +56,7 @@ impl FloorBuilder<Drawable> {
             noise_map: self.noise_map,
             extra: Filled {},
             frames: self.frames,
+            id: self.id,
         }
     }
 }

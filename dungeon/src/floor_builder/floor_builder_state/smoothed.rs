@@ -12,7 +12,7 @@ use crate::{
     Column, DungeonTile, FloorBuilder, Point, Row,
 };
 
-use super::{filled::Filled, has_secret_connections::HasSecretPassages, FloorBuilderState};
+use super::{has_secret_connections::HasSecretPassages, FloorBuilderState};
 #[derive(Debug)]
 pub(in crate::floor_builder) struct Smoothed {}
 impl FloorBuilderState for Smoothed {}
@@ -96,6 +96,7 @@ impl FloorBuilder<Smoothed> {
             map: self.map,
             noise_map: self.noise_map,
             frames: self.frames,
+            id: self.id,
         }
     }
 
@@ -128,6 +129,7 @@ impl FloorBuilder<Smoothed> {
                     noise_map: new_self.noise_map,
                     extra: HasSecretPassages {},
                     frames: new_self.frames,
+                    id: new_self.id,
                 };
             }
         }

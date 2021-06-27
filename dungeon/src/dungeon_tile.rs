@@ -16,9 +16,20 @@ pub enum DungeonTile {
     SecretPassage,
     // #[serde(serialize_with = "custom_serde::serialize")]
     TreasureChest { contents: () },
+    Entrance,
+    Exit,
 }
 
 impl DungeonTile {
+    pub const COLOR_MAP: [u8; 18] = [
+        0xFF, 0xFF, 0xFF, // black
+        0x00, 0x00, 0x00, // white
+        0xFF, 0x00, 0x00, // red
+        0x00, 0xFF, 0x00, // green
+        0x00, 0x00, 0xFF, // blue
+        0xFF, 0x00, 0xFF, // purple
+    ];
+
     pub fn as_u8(&self) -> u8 {
         match self {
             DungeonTile::Empty => 0,
@@ -26,6 +37,8 @@ impl DungeonTile {
             DungeonTile::SecretDoor { requires_key: _ } => 2,
             DungeonTile::SecretPassage => 3,
             DungeonTile::TreasureChest { contents: _ } => 4,
+            DungeonTile::Entrance => 5,
+            DungeonTile::Exit => 6,
         }
     }
 }
@@ -163,6 +176,8 @@ impl DungeonTile {
             DungeonTile::SecretDoor { .. } => "SD",
             DungeonTile::SecretPassage => "<>",
             DungeonTile::TreasureChest { .. } => "TC",
+            DungeonTile::Entrance => "EN",
+            DungeonTile::Exit => "EX",
         })
     }
 }

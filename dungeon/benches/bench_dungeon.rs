@@ -1,6 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, SamplingMode};
 use game::{Dungeon, DungeonType};
-use std::{convert::TryInto, num::NonZeroUsize};
+use std::{convert::TryInto, num::NonZeroU16};
 
 fn bench_dungeon_generation(c: &mut Criterion) {
     let mut group = c.benchmark_group("bench_dungeon_generation");
@@ -11,8 +11,9 @@ fn bench_dungeon_generation(c: &mut Criterion) {
             let _ = Dungeon::new(
                 black_box(50.try_into().unwrap()),
                 black_box(100.try_into().unwrap()),
-                NonZeroUsize::new(10).unwrap(),
+                NonZeroU16::new(10).unwrap(),
                 DungeonType::Cave,
+                false,
             );
         })
     });
@@ -21,8 +22,9 @@ fn bench_dungeon_generation(c: &mut Criterion) {
             let _ = Dungeon::new(
                 black_box(100.try_into().unwrap()),
                 black_box(200.try_into().unwrap()),
-                NonZeroUsize::new(10).unwrap(),
+                NonZeroU16::new(10).unwrap(),
                 DungeonType::Cave,
+                false,
             );
         })
     });
@@ -31,8 +33,9 @@ fn bench_dungeon_generation(c: &mut Criterion) {
             let _ = Dungeon::new(
                 black_box(50.try_into().unwrap()),
                 black_box(50.try_into().unwrap()),
-                NonZeroUsize::new(100).unwrap(),
+                NonZeroU16::new(100).unwrap(),
                 DungeonType::Cave,
+                false,
             );
         })
     });

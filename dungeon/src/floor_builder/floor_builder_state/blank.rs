@@ -10,6 +10,7 @@ use rand::{thread_rng, Rng};
 
 use crate::{
     bounded_int::BoundedInt,
+    distance,
     {
         floor_builder::{MAX_FLOOR_SIZE, MIN_FLOOR_SIZE, RANDOM_FILL_WALL_CHANCE},
         point_index::PointIndex,
@@ -67,25 +68,59 @@ impl FloorBuilder<Blank> {
         // original noisy walls map
         self.frame_from_current_state(100);
 
-        // println!("{}\n", self.pretty(vec![], vec![]));
+        let mut rng = thread_rng();
 
         // ANCHOR: dijkstra
-        // find path through noise map and apply path to walls map
-        let goal = Point {
-            row: Row::new(self.height.expand_lower()).saturating_sub(4),
-            column: Column::new(self.width.expand_lower()).saturating_sub(4),
+        // find a path through the noise map and apply the found path to the walls map
+        let start = Point {
+            row: Row::new(
+                rng.gen_range(0..self.height.as_unbounded())
+                    .try_into()
+                    .unwrap(),
+            ),
+            column: Column::new(
+                rng.gen_range(0..self.width.as_unbounded())
+                    .try_into()
+                    .unwrap(),
+            ),
+        };
+
+        let end = loop {
+            let larger_dimension = if self.width > self.height {
+                self.width
+            } else {
+                self.height
+            };
+            let maybe_end = Point {
+                row: Row::new(
+                    rng.gen_range(1..(self.height.as_unbounded() - 1))
+                        .try_into()
+                        .unwrap(),
+                ),
+                column: Column::new(
+                    rng.gen_range(1..(self.width.as_unbounded() - 1))
+                        .try_into()
+                        .unwrap(),
+                ),
+            };
+            let dist = distance(maybe_end, start);
+
+            if dist > (larger_dimension.as_unbounded() as f64)
+                || dist < (larger_dimension.as_unbounded() as f64 * 2.0)
+            {
+                break maybe_end;
+            } else {
+                continue;
+            }
         };
 
         let (found_path, _) = dijkstra(
-            &Point {
-                row: Row::new(4.try_into().unwrap()),
-                column: Column::new(4.try_into().unwrap()),
-            },
+            &start,
             |&point| {
                 self.get_legal_neighbors(point)
                     .map(|p| (p, *self.noise_map.at(p, self.width) as u32))
             },
-            |&point| !self.is_out_of_bounds(point) && point == goal,
+            |&point| !self.is_out_of_bounds(point) && point == end,
         )
         .expect("no path found");
 
@@ -100,6 +135,9 @@ impl FloorBuilder<Blank> {
             self.frame_from_current_state(1);
         }
 
+        *self.map.at_mut(start, self.width) = DungeonTile::Entrance;
+        *self.map.at_mut(end, self.width) = DungeonTile::Exit;
+
         self.frame_from_current_state(100);
 
         FloorBuilder {
@@ -109,6 +147,7 @@ impl FloorBuilder<Blank> {
             map: self.map,
             noise_map: self.noise_map,
             frames: self.frames,
+            id: self.id,
         }
     }
 }
@@ -123,24 +162,27 @@ fn get_noise_value(
     mod u4 {
         pub const MAX: u8 = 16;
     }
-    /* u16::MAX
-    -  */
     let n = noise
         .get([
             (column.as_unbounded() as f64 / width.as_unbounded() as f64),
             (row.as_unbounded() as f64 / height.as_unbounded() as f64),
         ])
+        // change the range from [-1, 1] to [-8, 8]
         .mul((u4::MAX / 2) as f64)
-        .add(u4::MAX as f64)
+        // change the range from [-8, 8] to [0, 16]
+        .add((u4::MAX) as f64)
+        // change the range from [0, 16] to [0, 2^16]
         .powi(4)
+        // round up
         .ceil() as u16;
 
+    // these ⭐ magic numbers ⭐ have been hand crafted to perfection
+    // don't touch them pls
     if n <= (u16::MAX as f64 / 2.5) as u16 {
         n / 2
     } else {
         u16::MAX
     }
-    // .clamp(u16::MAX / 2, u16::MAX)
 }
 
 fn create_billow(rng: &mut impl rand::Rng) -> Billow {
@@ -152,7 +194,7 @@ fn create_billow(rng: &mut impl rand::Rng) -> Billow {
         .set_seed(rng.gen())
 }
 
-fn shift_range<I: Integer + Copy>(
+fn _shift_range<I: Integer + Copy>(
     old_value: I,
     old_min: I,
     old_max: I,
@@ -201,8 +243,7 @@ mod test_noise {
                     HEIGHT.try_into().unwrap(),
                     WIDTH.try_into().unwrap(),
                 );
-                *noise_map.at_mut(point, BoundedInt::<0, MAX_FLOOR_SIZE>::new(WIDTH).unwrap()) =
-                    dbg!(n);
+                *noise_map.at_mut(point, BoundedInt::<0, MAX_FLOOR_SIZE>::new(WIDTH).unwrap()) = n;
             }
         }
 

@@ -1,7 +1,7 @@
 use std::convert::TryInto;
 
 use itertools::Itertools;
-use rand::{prelude::SliceRandom, thread_rng};
+use rand::thread_rng;
 
 use crate::{point_index::PointIndex, Column, FloorBuilder, Point, Row};
 
@@ -27,12 +27,7 @@ impl FloorBuilder<HasSecretPassages> {
                         row: Row::new(row),
                     })
             })
-            .filter(|&point| {
-                matches!(
-                    self.map.at(point, self.width),
-                    crate::DungeonTile::Empty
-                )
-            })
+            .filter(|&point| matches!(self.map.at(point, self.width), crate::DungeonTile::Empty))
             .sorted_by(|&a, &b| {
                 self.noise_map
                     .at(a, self.width)

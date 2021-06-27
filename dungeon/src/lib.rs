@@ -1,17 +1,19 @@
-use std::{collections::HashSet, convert::TryInto, fmt, iter, num::NonZeroUsize, usize};
-use border::BorderId;
-use serde::{Deserialize, Serialize};
 pub use crate::dungeon_tile::DungeonTile;
+use border::BorderId;
 pub use floor_builder::FloorBuilder;
 pub use point::*;
+use serde::{Deserialize, Serialize};
+use std::{convert::TryInto, fmt, num::NonZeroU16, usize};
 
 use bounded_int;
 // mod command;
 // mod example;
+mod border;
+mod connection_path;
 pub mod dungeon_tile;
 mod floor_builder;
-pub mod point_index;
 mod point;
+pub mod point_index;
 
 use crate::{
     bounded_int::BoundedInt,
@@ -23,16 +25,14 @@ pub fn create_dungeon(width: i32, height: i32) {
     let _ = Dungeon::new(
         height.try_into().unwrap(),
         width.try_into().unwrap(),
-        NonZeroUsize::new(10).unwrap(),
+        NonZeroU16::new(10).unwrap(),
         DungeonType::Cave,
+        false,
     );
 }
 
 // use ansi_term::ANSIStrings;
 // use rayon::iter::{IntoParallelIterator, ParallelIterator};
-
-mod connection_path;
-
 
 // ANCHOR[id=connection]
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -41,7 +41,6 @@ struct Connection {
     from: (Point, BorderId),
     to: (Point, BorderId),
 }
-mod border;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Dungeon {
@@ -54,21 +53,13 @@ impl Dungeon {
         use gif::{Encoder, Frame, Repeat};
         use std::borrow::Cow;
 
-        let color_map = &[
-            0xFF, 0xFF, 0xFF, // black
-            0x00, 0x00, 0x00, // white
-            0xFF, 0x00, 0x00, // red
-            0x00, 0xFF, 0x00, // green
-            0x00, 0x00, 0xFF, // blue
-        ];
-
         let mut image = vec![];
         {
             let mut encoder = Encoder::new(
                 &mut image,
                 self.floors[0].width.as_unbounded() as u16,
                 self.floors[0].height.as_unbounded() as u16,
-                color_map,
+                &DungeonTile::COLOR_MAP,
             )
             .unwrap();
             encoder.set_repeat(Repeat::Infinite).unwrap();
@@ -102,53 +93,37 @@ pub struct Floor {
 
 impl Floor {
     pub fn new(
+        id: FloorId,
         width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
         height: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
+        gif_output: bool,
     ) -> Self {
-        FloorBuilder::create(width, height)
+        FloorBuilder::create(id, width, height, gif_output)
     }
+}
 
-    // pub(crate) fn pretty(&self, extra_points: Vec<Point>, extra_points2: Vec<Point>) -> String {
-    //     self.data
-    //         .chunks(self.width)
-    //         .zip(0i32..)
-    //         .map(|i| {
-    //             ANSIStrings(
-    //                 &i.0.iter()
-    //                     .zip(0i32..)
-    //                     .map(|j| {
-    //                         j.0.print(
-    //                             extra_points2.contains(&Point {
-    //                                 row: Row::new(i.1),
-    //                                 column: Column::new(j.1),
-    //                             }),
-    //                             extra_points.contains(&Point {
-    //                                 row: Row::new(i.1),
-    //                                 column: Column::new(j.1),
-    //                             }),
-    //                         )
-    //                     })
-    //                     .collect::<Vec<_>>(),
-    //             )
-    //             .to_string()
-    //         })
-    //         .collect::<Vec<_>>()
-    //         .join("\n")
-    // }
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
+pub struct FloorId(u16);
+
+impl fmt::Display for FloorId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_fmt(format_args!("{}", self.0))
+    }
 }
 
 impl Dungeon {
     pub fn new(
         height: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
         width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
-        floor_count: NonZeroUsize,
+        floor_count: NonZeroU16,
         dungeon_type: DungeonType,
+        gif_output: bool,
     ) -> Self {
         Self {
             dungeon_type,
-            floors: (0..floor_count.get())
+            floors: (0u16..floor_count.get())
                 // .into_par_iter()
-                .map(|_| FloorBuilder::create(width, height))
+                .map(|id| FloorBuilder::create(FloorId(id), width, height, gif_output))
                 .collect(),
         }
     }
@@ -182,19 +157,20 @@ mod test_dungeon {
         let dungeon = Dungeon::new(
             50.try_into().unwrap(),
             50.try_into().unwrap(),
-            NonZeroUsize::new(10).unwrap(),
+            NonZeroU16::new(10).unwrap(),
             DungeonType::Cave,
+            false,
         );
 
         let contents = rmp_serde::to_vec(&dungeon).unwrap();
 
-        dbg!(contents.len() * mem::size_of::<u8>());
+        // dbg!(contents.len() * mem::size_of::<u8>());
 
         fs::write("./test.mp", &contents).unwrap();
 
         let contents_json = serde_json::to_string(&dungeon).unwrap();
 
-        dbg!(contents_json.len() * mem::size_of::<u8>());
+        // dbg!(contents_json.len() * mem::size_of::<u8>());
 
         fs::write("./test.json", contents_json).unwrap();
 

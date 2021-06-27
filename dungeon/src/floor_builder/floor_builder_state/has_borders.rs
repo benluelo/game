@@ -8,7 +8,7 @@ use crate::{
     distance, Connection, FloorBuilder, Point,
 };
 
-use super::{drawable::Drawable, has_connections::HasConnections, FloorBuilderState};
+use super::{has_connections::HasConnections, FloorBuilderState};
 
 #[derive(Debug)]
 pub(in crate::floor_builder) struct HasBorders {
@@ -43,6 +43,7 @@ impl FloorBuilder<HasBorders> {
                     ..Default::default()
                 },
                 frames: self.frames,
+                id: self.id,
             };
         }
 
@@ -73,7 +74,6 @@ impl FloorBuilder<HasBorders> {
         // loop through all the borders
         // build one connection per loop
         for (acc, current_border) in self.extra.borders.iter().enumerate() {
-            dbg!(current_border.id);
             let already_connected_ids = connected_borders_graph
                 .neighbors(current_border.id)
                 .collect::<Vec<_>>();
@@ -87,7 +87,7 @@ impl FloorBuilder<HasBorders> {
                 .filter(|(_, &id)| !already_connected_ids.contains(&id))
                 .flat_map(|(&point, &id)| {
                     // create a `Connection` between every point in this border and the borders it isn't already connected to
-                    // LINK src/dungeon/mod.rs#connection
+                    // LINK dungeon/src/lib.rs#connection
                     current_border
                         .points
                         .iter()
@@ -114,7 +114,6 @@ impl FloorBuilder<HasBorders> {
             // strongly connected components
             let sccs = kosaraju_scc(&connected_borders_graph);
 
-            dbg!(&sccs);
             let should_return = match iterations {
                 // if there is only one scc, we're done here
                 BuildConnectionIterations::FullyConnect => sccs.len() == 1,
@@ -123,6 +122,7 @@ impl FloorBuilder<HasBorders> {
                 // if the amount of sccs is less than or equal to the amount requested, return
                 BuildConnectionIterations::Until(until) => sccs.len() <= until.into(),
             };
+
             if should_return {
                 let msf = UnGraphMap::from_elements(min_spanning_tree(
                     &connected_borders_graph.into_graph::<usize>(),
@@ -141,6 +141,7 @@ impl FloorBuilder<HasBorders> {
                         borders: self.extra.borders.into_iter().map(|b| (b.id, b)).collect(),
                     },
                     frames: self.frames,
+                    id: self.id,
                 };
             };
         }
@@ -154,6 +155,7 @@ impl FloorBuilder<HasBorders> {
                 borders: self.extra.borders.into_iter().map(|b| (b.id, b)).collect(),
             },
             frames: self.frames,
+            id: self.id,
         }
     }
 }

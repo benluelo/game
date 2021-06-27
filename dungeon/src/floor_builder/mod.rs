@@ -1,5 +1,6 @@
 use crate::{
     bounded_int::BoundedInt,
+    FloorId,
     {
         dungeon_tile::DungeonTile, floor_builder::floor_builder_state::*, point_index::PointIndex,
         Column, Point, Row,
@@ -30,6 +31,7 @@ pub struct FloorBuilder<S: FloorBuilderState> {
     pub(crate) noise_map: Vec<u16>,
     extra: S,
     frames: Option<Vec<gif::Frame<'static>>>,
+    id: FloorId,
 }
 
 // #[cfg(test)]
@@ -89,6 +91,7 @@ impl<S: Smoothable> FloorBuilder<S> {
             noise_map: self.noise_map,
             extra: Smoothed {},
             frames: self.frames,
+            id: self.id,
         }
     }
 }
@@ -109,8 +112,10 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
 
     // ANCHOR state machine entry point
     pub(in crate::floor_builder) fn blank(
+        id: FloorId,
         width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
         height: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
+        gif_output: bool,
     ) -> FloorBuilder<Blank> {
         FloorBuilder {
             width,
@@ -128,8 +133,9 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
                     .unwrap()
             ],
             extra: Blank {},
-            // frames: Some(vec![]),
-            frames: None,
+            frames: if gif_output { Some(vec![]) } else { None },
+            // frames: ,
+            id,
         }
     }
 
@@ -264,8 +270,12 @@ mod test_super {
 
     #[test]
     pub(crate) fn test_blank_floor_generation() {
-        let blank_floor =
-            FloorBuilder::<Blank>::blank(10.try_into().unwrap(), 10.try_into().unwrap());
+        let blank_floor = FloorBuilder::<Blank>::blank(
+            FloorId(0),
+            10.try_into().unwrap(),
+            10.try_into().unwrap(),
+            false,
+        );
 
         assert!(blank_floor.height.as_unbounded() == 10);
         assert!(blank_floor.width.as_unbounded() == 10);
@@ -273,8 +283,12 @@ mod test_super {
 
     #[test]
     pub(crate) fn test_random_fill_generation() {
-        let random_filled_floor =
-            FloorBuilder::<Blank>::blank(50.try_into().unwrap(), 100.try_into().unwrap());
+        let random_filled_floor = FloorBuilder::<Blank>::blank(
+            FloorId(0),
+            50.try_into().unwrap(),
+            100.try_into().unwrap(),
+            false,
+        );
         let formatted = random_filled_floor._pretty(vec![], vec![]);
 
         println!("{}", &formatted)
@@ -285,7 +299,7 @@ mod test_super {
         let width = 10.try_into().unwrap();
         let height = 15.try_into().unwrap();
 
-        let blank_floor = FloorBuilder::<Blank>::blank(width, height);
+        let blank_floor = FloorBuilder::<Blank>::blank(FloorId(0), width, height, false);
 
         let mut new_vec = vec![false; (width.as_unbounded() * height.as_unbounded()) as usize];
 
@@ -306,7 +320,7 @@ mod test_super {
         let width = 10.try_into().unwrap();
         let height = 15.try_into().unwrap();
 
-        let blank_floor = FloorBuilder::<Blank>::blank(width, height);
+        let blank_floor = FloorBuilder::<Blank>::blank(FloorId(0), width, height, false);
 
         let mut new_vec = vec![false; (width.as_unbounded() * height.as_unbounded()) as usize];
 
