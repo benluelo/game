@@ -1,2 +1,5 @@
 [workspace]
 members = ["bounded_int", "dungeon"]
+
+[profile.bench]
+debug = true

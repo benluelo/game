@@ -1,4 +1,5 @@
 use std::{collections::HashSet, convert::TryInto, fmt, iter, num::NonZeroUsize, usize};
+use border::BorderId;
 use serde::{Deserialize, Serialize};
 pub use crate::dungeon_tile::DungeonTile;
 pub use floor_builder::FloorBuilder;

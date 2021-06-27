@@ -1,7 +1,6 @@
 use std::{
     convert::TryInto,
     ops::{Add, Mul},
-    u64, u8,
 };
 
 use noise::{Billow, MultiFractal, NoiseFn, Seedable};
@@ -29,7 +28,7 @@ impl FloorBuilder<Blank> {
     pub(in crate::floor_builder) fn random_fill(mut self) -> FloorBuilder<Filled> {
         let mut rng = thread_rng();
 
-        let mut noise = Billow::new().set_seed(rng.gen()).set_persistence(128.0);
+        let mut noise = create_billow(&mut rng);
 
         // build initial maps (walls and noise)
         for column in self
@@ -121,22 +120,36 @@ fn get_noise_value(
     height: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
     width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
 ) -> u16 {
-    // shift_range(
-    u16::MAX
-        - noise
-            .get([
-                (column.as_unbounded() as f64 / width.as_unbounded() as f64),
-                (row.as_unbounded() as f64 / height.as_unbounded() as f64),
-            ])
-            .mul((u16::MAX / 2) as f64)
-            .add(u16::MAX as f64)
-            // .powi(2)
-            .ceil() as u16
-    // 0,
-    // u8::MAX,
-    // 0,
-    // 16777216,
-    // )
+    mod u4 {
+        pub const MAX: u8 = 16;
+    }
+    /* u16::MAX
+    -  */
+    let n = noise
+        .get([
+            (column.as_unbounded() as f64 / width.as_unbounded() as f64),
+            (row.as_unbounded() as f64 / height.as_unbounded() as f64),
+        ])
+        .mul((u4::MAX / 2) as f64)
+        .add(u4::MAX as f64)
+        .powi(4)
+        .ceil() as u16;
+
+    if n <= (u16::MAX as f64 / 2.5) as u16 {
+        n / 2
+    } else {
+        u16::MAX
+    }
+    // .clamp(u16::MAX / 2, u16::MAX)
+}
+
+fn create_billow(rng: &mut impl rand::Rng) -> Billow {
+    Billow::new()
+        .set_octaves(1)
+        .set_frequency(5.0)
+        .set_lacunarity(0.001)
+        .set_persistence(0.001)
+        .set_seed(rng.gen())
 }
 
 fn shift_range<I: Integer + Copy>(
@@ -160,13 +173,13 @@ mod test_noise {
 
     #[test]
     fn test_noise_map_prettyness_lol_idk() {
-        const WIDTH: i32 = 150;
-        const HEIGHT: i32 = 100;
+        const WIDTH: i32 = 200;
+        const HEIGHT: i32 = 200;
         let mut noise_map = vec![0; (WIDTH * HEIGHT) as usize];
 
         let mut rng = thread_rng();
 
-        let mut noise = Billow::new().set_octaves(2).set_frequency(4.0).set_lacunarity(0.5) /* .set_seed(rng.gen()) */;
+        let mut noise = create_billow(&mut rng);
 
         for column in BoundedInt::<0, MAX_FLOOR_SIZE>::new(WIDTH)
             .unwrap()

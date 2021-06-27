@@ -36,6 +36,3 @@ harness = false
 [[bench]]
 name = "bench_get_adjacent_walls"
 harness = false
-
-[profile.bench]
-debug = true
