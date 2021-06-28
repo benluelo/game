@@ -141,6 +141,14 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
 
     /// will only return wall or empty
     fn place_wall_logic(&self, point: Point, create_new_walls: bool) -> DungeonTile {
+        let what_the_tile_is_currently = self.map.at(point, self.width);
+        if match what_the_tile_is_currently {
+            DungeonTile::Empty | DungeonTile::Wall => false,
+            _ => true,
+        } {
+            return *what_the_tile_is_currently;
+        }
+
         use DungeonTile::{Empty, Wall};
 
         if self.is_out_of_bounds(point) {

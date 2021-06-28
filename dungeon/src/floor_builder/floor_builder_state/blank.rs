@@ -105,8 +105,8 @@ impl FloorBuilder<Blank> {
             };
             let dist = distance(maybe_end, start);
 
-            if dist > (larger_dimension.as_unbounded() as f64)
-                || dist < (larger_dimension.as_unbounded() as f64 * 2.0)
+            if dist > (larger_dimension.as_unbounded() as f64 / 2.0)
+                && dist < (larger_dimension.as_unbounded() as f64)
             {
                 break maybe_end;
             } else {
@@ -124,19 +124,26 @@ impl FloorBuilder<Blank> {
         )
         .expect("no path found");
 
+        *self.map.at_mut(start, self.width) = DungeonTile::Entrance;
+        *self.map.at_mut(end, self.width) = DungeonTile::Exit;
+
         for &point in &found_path {
-            *self.map.at_mut(point, self.width) = DungeonTile::Empty;
+            if self.map.at(point, self.width).is_wall() && point != start && point != end {
+                *self.map.at_mut(point, self.width) = DungeonTile::Empty;
+            }
             for neighbor in self
                 .get_legal_neighbors_down_and_right(point)
                 .collect::<Vec<_>>()
             {
-                *self.map.at_mut(neighbor, self.width) = DungeonTile::Empty;
+                if self.map.at(neighbor, self.width).is_wall() && point != start && point != end {
+                    *self.map.at_mut(neighbor, self.width) = DungeonTile::Empty;
+                }
             }
             self.frame_from_current_state(1);
         }
 
-        *self.map.at_mut(start, self.width) = DungeonTile::Entrance;
-        *self.map.at_mut(end, self.width) = DungeonTile::Exit;
+        assert_eq!(self.map.at(start, self.width), &DungeonTile::Entrance);
+        assert_eq!(self.map.at(end, self.width), &DungeonTile::Exit);
 
         self.frame_from_current_state(100);
 

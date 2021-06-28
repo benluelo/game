@@ -1,4 +1,4 @@
-use crate::{DungeonTile, Floor, FloorBuilder};
+use crate::{point_index::PointIndex, Column, DungeonTile, Floor, FloorBuilder, Point, Row};
 
 use super::{FloorBuilderState, Smoothable};
 
@@ -38,7 +38,6 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
                 }
             }
 
-            std::fs::create_dir("out").unwrap();
             std::fs::write(format!("out/floor_{}.gif", self.id), image).unwrap();
         }
         Floor {
