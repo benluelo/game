@@ -36,3 +36,9 @@ harness = false
 [[bench]]
 name = "bench_get_adjacent_walls"
 harness = false
+
+[[bin]]
+name = "test_bin"
+
+[profile.release]
+debug = true
