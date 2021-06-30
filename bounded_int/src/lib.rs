@@ -40,6 +40,7 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
         n.try_into()
     }
 
+    #[inline(always)]
     pub fn as_unbounded(&self) -> i32 {
         self.0
     }
