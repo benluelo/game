@@ -1,5 +1,5 @@
 [workspace]
-members = ["bounded_int", "dungeon"]
+members = ["bounded_int", "dungeon", "bevy"]
 
 [profile.bench]
 debug = true
