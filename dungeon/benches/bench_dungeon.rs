@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, SamplingMode};
-use game::{Dungeon, DungeonType};
+use dungeon::{Dungeon, DungeonType};
 use std::{convert::TryInto, num::NonZeroU16};
 
 fn bench_dungeon_generation(c: &mut Criterion) {

@@ -1,6 +1,6 @@
 use std::{convert::TryInto, num::NonZeroU16};
 
-use game::{Dungeon, DungeonType};
+use dungeon::{Dungeon, DungeonType};
 
 #[test]
 fn test_dungeon_creation() {

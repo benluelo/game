@@ -13,6 +13,8 @@ mod connection_path;
 pub mod dungeon_tile;
 mod floor_builder;
 mod point;
+pub use point::Point;
+pub use point_index::PointIndex;
 pub mod point_index;
 
 use crate::{
@@ -86,9 +88,9 @@ impl Dungeon {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Floor {
-    width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
-    height: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
-    data: Vec<DungeonTile>,
+    pub width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
+    pub height: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
+    pub data: Vec<DungeonTile>,
 }
 
 impl Floor {

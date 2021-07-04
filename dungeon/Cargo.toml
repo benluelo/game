@@ -1,5 +1,5 @@
 [package]
-name = "game"
+name = "dungeon"
 version = "0.1.0"
 authors = ["Ben Luelo <benluelo@hotmail.com>"]
 edition = "2018"
@@ -33,12 +33,8 @@ criterion = { version = "0.3", features = ["html_reports"] }
 name = "bench_dungeon"
 harness = false
 
-[[bench]]
-name = "bench_get_adjacent_walls"
-harness = false
-
+# [[bench]]
+# name = "bench_get_adjacent_walls"
+# harness = false
 [[bin]]
 name = "test_bin"
-
-[profile.release]
-debug = true
