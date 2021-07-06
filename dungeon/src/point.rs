@@ -4,16 +4,7 @@ use bounded_int::ops::{BoundedIntOverflow, BoundedIntUnderflow};
 
 use crate::{bounded_int::BoundedInt, floor_builder::MAX_FLOOR_SIZE};
 
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    PartialOrd,
-    Ord, /* , derive_more::Add, derive_more::Sub, */
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Point {
     /// width
     pub column: Column,
@@ -21,105 +12,11 @@ pub struct Point {
     pub row: Row,
 }
 
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    PartialOrd,
-    Ord, /* , derive_more::Add, derive_more::Sub, */
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Row(pub(super) BoundedInt<0, { MAX_FLOOR_SIZE }>);
 
-impl Row {
-    pub fn new(row: BoundedInt<0, { MAX_FLOOR_SIZE }>) -> Self {
-        Row(row)
-    }
-
-    pub fn get(&self) -> BoundedInt<0, { MAX_FLOOR_SIZE }> {
-        self.0
-    }
-
-    pub fn saturating_add(self, n: i32) -> Self {
-        Row(self.0.saturating_add(n))
-    }
-
-    pub fn saturating_sub(self, n: i32) -> Self {
-        Row(self.0.saturating_sub(n))
-    }
-}
-
-// impl num_traits::SaturatingSub for Row {
-//     fn saturating_sub(&self, v: &Self) -> Self {
-//         Row(self.0.saturating_sub(v.0))
-//     }
-// }
-
-// impl num_traits::SaturatingAdd for Row {
-//     fn saturating_add(&self, v: &Self) -> Self {
-//         Row(self.0.saturating_add(v.0))
-//     }
-// }
-
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    PartialOrd,
-    Ord, /* , derive_more::Add, derive_more::Sub */
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Column(pub(super) BoundedInt<0, { MAX_FLOOR_SIZE }>);
-
-impl Column {
-    pub fn new(column: BoundedInt<0, { MAX_FLOOR_SIZE }>) -> Self {
-        Column(column)
-    }
-
-    pub fn get(&self) -> BoundedInt<0, { MAX_FLOOR_SIZE }> {
-        self.0
-    }
-
-    pub fn saturating_add(self, n: i32) -> Self {
-        Column(self.0.saturating_add(n))
-    }
-
-    pub fn saturating_sub(self, n: i32) -> Self {
-        Column(self.0.saturating_sub(n))
-    }
-}
-
-impl Add<u16> for Column {
-    type Output = Result<Self, BoundedIntOverflow>;
-
-    fn add(self, rhs: u16) -> Self::Output {
-        Ok(Self((self.0 + rhs)?))
-    }
-}
-
-impl Sub<u16> for Column {
-    type Output = Result<Self, BoundedIntUnderflow>;
-
-    fn sub(self, rhs: u16) -> Self::Output {
-        Ok(Self((self.0 - rhs)?))
-    }
-}
-
-// impl num_traits::SaturatingSub for Column {
-//     fn saturating_sub(&self, v: &Self) -> Self {
-//         Column(self.0.saturating_sub(v.0))
-//     }
-// }
-
-// impl num_traits::SaturatingAdd for Column {
-//     fn saturating_add(&self, v: &Self) -> Self {
-//         Column(self.0.saturating_add(v.0))
-//     }
-// }
 
 // TODO: use methods on row and col
 impl Point {
@@ -155,43 +52,19 @@ impl Add for Point {
     type Output = Option<Self>;
 
     fn add(self, rhs: Self) -> Self::Output {
-        let column = if let Some(value) = self.column + rhs.column {
+        let column = if let Ok(value) = self.column + rhs.column {
             value
         } else {
             return None;
         };
 
-        let row = if let Some(value) = self.row + rhs.row {
+        let row = if let Ok(value) = self.row + rhs.row {
             value
         } else {
             return None;
         };
 
         Some(Self { row, column })
-    }
-}
-
-impl Add for Column {
-    type Output = Option<Self>;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        if let Ok(value) = self.0 - rhs.0 {
-            Some(Self(value))
-        } else {
-            None
-        }
-    }
-}
-
-impl Add for Row {
-    type Output = Option<Self>;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        if let Ok(value) = self.0 - rhs.0 {
-            Some(Self(value))
-        } else {
-            None
-        }
     }
 }
 
@@ -199,13 +72,13 @@ impl Sub for Point {
     type Output = Option<Self>;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        let column = if let Some(value) = self.column - rhs.column {
+        let column = if let Ok(value) = self.column - rhs.column {
             value
         } else {
             return None;
         };
 
-        let row = if let Some(value) = self.row - rhs.row {
+        let row = if let Ok(value) = self.row - rhs.row {
             value
         } else {
             return None;
@@ -215,26 +88,66 @@ impl Sub for Point {
     }
 }
 
-impl Sub for Column {
-    type Output = Option<Self>;
+impl_row_col!(Row);
+impl_row_col!(Column);
 
-    fn sub(self, rhs: Self) -> Self::Output {
-        if let Ok(value) = self.0 + rhs.0 {
-            Some(Self(value))
-        } else {
-            None
+use crate::impl_row_col;
+
+#[macro_export]
+macro_rules! impl_row_col {
+    ($t:ty) => {
+        impl $t {
+            pub fn new(
+                value: ::bounded_int::BoundedInt<0, { crate::floor_builder::MAX_FLOOR_SIZE }>,
+            ) -> Self {
+                Self(value)
+            }
+
+            pub fn get(
+                &self,
+            ) -> ::bounded_int::BoundedInt<0, { crate::floor_builder::MAX_FLOOR_SIZE }> {
+                self.0
+            }
+
+            pub fn saturating_add(self, n: i32) -> Self {
+                Self(self.0.saturating_add(n))
+            }
+
+            pub fn saturating_sub(self, n: i32) -> Self {
+                Self(self.0.saturating_sub(n))
+            }
         }
-    }
-}
 
-impl Sub for Row {
-    type Output = Option<Self>;
+        impl ::std::ops::Add<u16> for $t {
+            type Output = Result<Self, ::bounded_int::ops::BoundedIntOverflow>;
 
-    fn sub(self, rhs: Self) -> Self::Output {
-        if let Ok(value) = self.0 + rhs.0 {
-            Some(Self(value))
-        } else {
-            None
+            fn add(self, rhs: u16) -> Self::Output {
+                Ok(Self((self.0.add(rhs))?))
+            }
         }
-    }
+
+        impl ::std::ops::Sub<u16> for $t {
+            type Output = Result<Self, ::bounded_int::ops::BoundedIntUnderflow>;
+
+            fn sub(self, rhs: u16) -> Self::Output {
+                Ok(Self((self.0.sub(rhs))?))
+            }
+        }
+
+        impl ::std::ops::Add for $t {
+            type Output = Result<Self, ::bounded_int::ops::BoundedIntOverflow>;
+
+            fn add(self, rhs: Self) -> Self::Output {
+                Ok(Self((self.0.add(rhs.0))?))
+            }
+        }
+
+        impl ::std::ops::Sub for $t {
+            type Output = Result<Self, ::bounded_int::ops::BoundedIntUnderflow>;
+
+            fn sub(self, rhs: Self) -> Self::Output {
+                Ok(Self((self.0.sub(rhs.0))?))
+            }
+        }
+    };
 }

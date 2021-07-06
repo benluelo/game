@@ -1,8 +1,4 @@
-use std::{
-    convert::TryInto,
-    num::NonZeroU16,
-    ops::{Add, Index},
-};
+use std::{convert::TryInto, num::NonZeroU16, ops::Index};
 
 use bevy::{prelude::*, render::camera::Camera};
 use dungeon::{Column, Dungeon, DungeonTile, DungeonType, Point, PointIndex, Row};
@@ -35,7 +31,7 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     commands.insert_resource(Dungeon::new(
         80.try_into().unwrap(),
-        80.try_into().unwrap(),
+        50.try_into().unwrap(),
         NonZeroU16::new(1).unwrap(),
         DungeonType::Cave,
         false,
@@ -87,7 +83,7 @@ impl Index<DungeonTile> for Materials {
 
 pub struct Position(Point);
 
-const SPRITE_SIZE: f32 = 50.0;
+const SPRITE_SIZE: f32 = 5.0;
 
 fn spawn_player_and_board(
     mut commands: Commands,
@@ -121,7 +117,9 @@ fn spawn_player_and_board(
                         sprite: Sprite::new(Vec2::new(SPRITE_SIZE, SPRITE_SIZE)),
                         transform: Transform::from_xyz(
                             point.column.get().as_unbounded() as f32 * SPRITE_SIZE,
-                            point.row.get().as_unbounded() as f32 * SPRITE_SIZE,
+                            (floor.height.as_unbounded() as f32
+                                - point.row.get().as_unbounded() as f32)
+                                * SPRITE_SIZE,
                             20.0,
                         ),
                         ..Default::default()
@@ -132,7 +130,9 @@ fn spawn_player_and_board(
                 for mut transform in camera.iter_mut() {
                     transform.translation.x =
                         point.column.get().as_unbounded() as f32 * SPRITE_SIZE;
-                    transform.translation.y = point.row.get().as_unbounded() as f32 * SPRITE_SIZE;
+                    transform.translation.y = (floor.height.as_unbounded() as f32
+                        - point.row.get().as_unbounded() as f32)
+                        * SPRITE_SIZE;
                 }
             }
 
@@ -142,7 +142,9 @@ fn spawn_player_and_board(
                     sprite: Sprite::new(Vec2::new(SPRITE_SIZE, SPRITE_SIZE)),
                     transform: Transform::from_xyz(
                         point.column.get().as_unbounded() as f32 * SPRITE_SIZE,
-                        point.row.get().as_unbounded() as f32 * SPRITE_SIZE,
+                        (floor.height.as_unbounded() as f32
+                            - point.row.get().as_unbounded() as f32)
+                            * SPRITE_SIZE,
                         10.0,
                     ),
                     ..Default::default()
@@ -163,51 +165,73 @@ fn move_player(
 
     if let Ok(mut position) = player_position.single_mut() {
         dbg!(position.0);
+
+        let mut new_pos = Position { ..*position };
         if keyboard_input.pressed(KeyCode::Left) {
-            position.0.column = if let Ok(col) = position.0.column - 1 {
+            new_pos.0.column = if let Ok(col) = position.0.column - 1 {
                 println!("key left");
-                col
+                if col.get() < floor.width.expand_lower() {
+                    col
+                } else {
+                    return;
+                }
             } else {
                 return;
             };
-
-            if floor.data.at(position.0, floor.width).is_wall() {}
         }
         if keyboard_input.pressed(KeyCode::Right) {
-            position.0.column = if let Ok(col) = position.0.column + 1 {
-                col
+            new_pos.0.column = if let Ok(col) = position.0.column + 1 {
+                if col.get() < floor.width.expand_lower() {
+                    col
+                } else {
+                    return;
+                }
             } else {
                 return;
             };
         }
         if keyboard_input.pressed(KeyCode::Down) {
-            position.0.row = if let Some(row) = position.0.row + 1 {
-                row
+            new_pos.0.row = if let Ok(row) = position.0.row + 1 {
+                if row.get() < floor.height.expand_lower() {
+                    row
+                } else {
+                    return;
+                }
             } else {
                 return;
             };
         }
         if keyboard_input.pressed(KeyCode::Up) {
-            position.0.row = if let Some(row) = position.0.row - 1 {
-                row
+            new_pos.0.row = if let Ok(row) = position.0.row - 1 {
+                if row.get() < floor.height.expand_lower() {
+                    row
+                } else {
+                    return;
+                }
             } else {
                 return;
             };
         }
-    }
 
-    for mut transform in transforms.iter_mut() {
-        if keyboard_input.pressed(KeyCode::Left) {
-            transform.translation.x -= SPRITE_SIZE;
+        if floor.data.at(new_pos.0, floor.width).is_wall() {
+            return;
+        } else {
+            *position = new_pos;
         }
-        if keyboard_input.pressed(KeyCode::Right) {
-            transform.translation.x += SPRITE_SIZE;
-        }
-        if keyboard_input.pressed(KeyCode::Down) {
-            transform.translation.y -= SPRITE_SIZE;
-        }
-        if keyboard_input.pressed(KeyCode::Up) {
-            transform.translation.y += SPRITE_SIZE;
+
+        for mut transform in transforms.iter_mut() {
+            if keyboard_input.pressed(KeyCode::Left) {
+                transform.translation.x -= SPRITE_SIZE;
+            }
+            if keyboard_input.pressed(KeyCode::Right) {
+                transform.translation.x += SPRITE_SIZE;
+            }
+            if keyboard_input.pressed(KeyCode::Down) {
+                transform.translation.y -= SPRITE_SIZE;
+            }
+            if keyboard_input.pressed(KeyCode::Up) {
+                transform.translation.y += SPRITE_SIZE;
+            }
         }
     }
 }
