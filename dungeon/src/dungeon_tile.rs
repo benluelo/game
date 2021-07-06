@@ -51,7 +51,7 @@ impl Default for DungeonTile {
 }
 
 impl DungeonTile {
-    pub(crate) fn is_wall(&self) -> bool {
+    pub fn is_wall(&self) -> bool {
         matches!(self, DungeonTile::Wall)
     }
 

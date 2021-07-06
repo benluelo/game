@@ -198,7 +198,7 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
     }
 
     /// Considers out-of-bounds a wall
-    fn is_wall(&self, point: Point) -> bool {
+    pub fn is_wall(&self, point: Point) -> bool {
         if self.is_out_of_bounds(point) {
             return true;
         }

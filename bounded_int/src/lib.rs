@@ -3,8 +3,8 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::convert::{TryFrom, TryInto};
 
-mod iter;
-mod ops;
+pub mod iter;
+pub mod ops;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct BoundedInt</* T: Integer,  */ const LOW: i32, const HIGH: i32>(pub(crate) i32);

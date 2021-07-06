@@ -1,4 +1,8 @@
-use std::{convert::TryInto, num::NonZeroU16, ops::Index};
+use std::{
+    convert::TryInto,
+    num::NonZeroU16,
+    ops::{Add, Index},
+};
 
 use bevy::{prelude::*, render::camera::Camera};
 use dungeon::{Column, Dungeon, DungeonTile, DungeonType, Point, PointIndex, Row};
@@ -17,7 +21,7 @@ fn main() {
             SystemStage::single(spawn_player_and_board.system()),
         )
         .add_plugins(DefaultPlugins)
-        .add_system(snake_movement.system())
+        .add_system(move_player.system())
         // .add_system_set_to_stage(
         //     CoreStage::PostUpdate,
         //     SystemSet::new()
@@ -129,7 +133,6 @@ fn spawn_player_and_board(
                     transform.translation.x =
                         point.column.get().as_unbounded() as f32 * SPRITE_SIZE;
                     transform.translation.y = point.row.get().as_unbounded() as f32 * SPRITE_SIZE;
-                    println!("found camera");
                 }
             }
 
@@ -150,27 +153,62 @@ fn spawn_player_and_board(
     }
 }
 
-fn snake_movement(
+fn move_player(
     keyboard_input: Res<Input<KeyCode>>,
-    mut set: QuerySet<(
-        Query<(&mut Transform, &mut Position), With<Player>>,
-        Query<&mut Transform, With<Camera>>,
-    )>,
+    dungeon: Res<Dungeon>,
+    mut player_position: Query<&mut Position, With<Player>>,
+    mut transforms: Query<&mut Transform, Or<(With<Camera>, With<Player>)>>,
 ) {
-    let (mut player_transform, mut player_position) = set.q0_mut().single_mut().unwrap();
-    let mut camera_transform = set.q1_mut().single_mut().unwrap();
+    let floor = &dungeon.floors[0];
 
-    if keyboard_input.pressed(KeyCode::Left) {
-        transform.translation.x -= SPRITE_SIZE;
+    if let Ok(mut position) = player_position.single_mut() {
+        dbg!(position.0);
+        if keyboard_input.pressed(KeyCode::Left) {
+            position.0.column = if let Ok(col) = position.0.column - 1 {
+                println!("key left");
+                col
+            } else {
+                return;
+            };
+
+            if floor.data.at(position.0, floor.width).is_wall() {}
+        }
+        if keyboard_input.pressed(KeyCode::Right) {
+            position.0.column = if let Ok(col) = position.0.column + 1 {
+                col
+            } else {
+                return;
+            };
+        }
+        if keyboard_input.pressed(KeyCode::Down) {
+            position.0.row = if let Some(row) = position.0.row + 1 {
+                row
+            } else {
+                return;
+            };
+        }
+        if keyboard_input.pressed(KeyCode::Up) {
+            position.0.row = if let Some(row) = position.0.row - 1 {
+                row
+            } else {
+                return;
+            };
+        }
     }
-    if keyboard_input.pressed(KeyCode::Right) {
-        transform.translation.x += SPRITE_SIZE;
-    }
-    if keyboard_input.pressed(KeyCode::Down) {
-        transform.translation.y -= SPRITE_SIZE;
-    }
-    if keyboard_input.pressed(KeyCode::Up) {
-        transform.translation.y += SPRITE_SIZE;
+
+    for mut transform in transforms.iter_mut() {
+        if keyboard_input.pressed(KeyCode::Left) {
+            transform.translation.x -= SPRITE_SIZE;
+        }
+        if keyboard_input.pressed(KeyCode::Right) {
+            transform.translation.x += SPRITE_SIZE;
+        }
+        if keyboard_input.pressed(KeyCode::Down) {
+            transform.translation.y -= SPRITE_SIZE;
+        }
+        if keyboard_input.pressed(KeyCode::Up) {
+            transform.translation.y += SPRITE_SIZE;
+        }
     }
 }
 

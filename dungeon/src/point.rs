@@ -1,3 +1,7 @@
+use std::ops::{Add, Sub};
+
+use bounded_int::ops::{BoundedIntOverflow, BoundedIntUnderflow};
+
 use crate::{bounded_int::BoundedInt, floor_builder::MAX_FLOOR_SIZE};
 
 #[derive(
@@ -89,6 +93,22 @@ impl Column {
     }
 }
 
+impl Add<u16> for Column {
+    type Output = Result<Self, BoundedIntOverflow>;
+
+    fn add(self, rhs: u16) -> Self::Output {
+        Ok(Self((self.0 + rhs)?))
+    }
+}
+
+impl Sub<u16> for Column {
+    type Output = Result<Self, BoundedIntUnderflow>;
+
+    fn sub(self, rhs: u16) -> Self::Output {
+        Ok(Self((self.0 - rhs)?))
+    }
+}
+
 // impl num_traits::SaturatingSub for Column {
 //     fn saturating_sub(&self, v: &Self) -> Self {
 //         Column(self.0.saturating_sub(v.0))
@@ -127,6 +147,94 @@ impl Point {
         Self {
             column: Column(self.column.0.saturating_sub(n)),
             row: self.row,
+        }
+    }
+}
+
+impl Add for Point {
+    type Output = Option<Self>;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        let column = if let Some(value) = self.column + rhs.column {
+            value
+        } else {
+            return None;
+        };
+
+        let row = if let Some(value) = self.row + rhs.row {
+            value
+        } else {
+            return None;
+        };
+
+        Some(Self { row, column })
+    }
+}
+
+impl Add for Column {
+    type Output = Option<Self>;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        if let Ok(value) = self.0 - rhs.0 {
+            Some(Self(value))
+        } else {
+            None
+        }
+    }
+}
+
+impl Add for Row {
+    type Output = Option<Self>;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        if let Ok(value) = self.0 - rhs.0 {
+            Some(Self(value))
+        } else {
+            None
+        }
+    }
+}
+
+impl Sub for Point {
+    type Output = Option<Self>;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        let column = if let Some(value) = self.column - rhs.column {
+            value
+        } else {
+            return None;
+        };
+
+        let row = if let Some(value) = self.row - rhs.row {
+            value
+        } else {
+            return None;
+        };
+
+        Some(Self { row, column })
+    }
+}
+
+impl Sub for Column {
+    type Output = Option<Self>;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        if let Ok(value) = self.0 + rhs.0 {
+            Some(Self(value))
+        } else {
+            None
+        }
+    }
+}
+
+impl Sub for Row {
+    type Output = Option<Self>;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        if let Ok(value) = self.0 + rhs.0 {
+            Some(Self(value))
+        } else {
+            None
         }
     }
 }

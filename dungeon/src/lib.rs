@@ -12,6 +12,7 @@ mod border;
 mod connection_path;
 pub mod dungeon_tile;
 mod floor_builder;
+mod r#macro;
 mod point;
 pub use point::Point;
 pub use point_index::PointIndex;
