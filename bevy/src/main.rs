@@ -1,5 +1,7 @@
-use std::{convert::TryInto, num::NonZeroU16, ops::Index};
+use std::ops::Index;
+use std::{convert::TryInto, num::NonZeroU16};
 
+use bevy::core::FixedTimestep;
 use bevy::{prelude::*, render::camera::Camera};
 use dungeon::{Column, Dungeon, DungeonTile, DungeonType, Point, PointIndex, Row};
 
@@ -11,13 +13,20 @@ fn main() {
             height: 500.0,
             ..Default::default()
         })
+        .insert_resource(PlayerState::Still)
         .add_startup_system(setup.system())
         .add_startup_stage(
             "game setup",
             SystemStage::single(spawn_player_and_board.system()),
         )
         .add_plugins(DefaultPlugins)
-        .add_system(move_player.system())
+        .add_system(player_movement_input_handling.system())
+        .add_system_set(
+            SystemSet::new()
+                // This prints out "hello world" once every second
+                .with_run_criteria(FixedTimestep::step(1.0 / 60.0))
+                .with_system(smooth_player_movement.system()),
+        )
         // .add_system_set_to_stage(
         //     CoreStage::PostUpdate,
         //     SystemSet::new()
@@ -27,11 +36,16 @@ fn main() {
         .run();
 }
 
+pub enum PlayerState {
+    Moving { destination: Point, steps_left: u8 },
+    Still,
+}
+
 fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     commands.insert_resource(Dungeon::new(
-        80.try_into().unwrap(),
-        50.try_into().unwrap(),
+        80_i32.try_into().unwrap(),
+        50_i32.try_into().unwrap(),
         NonZeroU16::new(1).unwrap(),
         DungeonType::Cave,
         false,
@@ -140,13 +154,7 @@ fn spawn_player_and_board(
                 .spawn_bundle(SpriteBundle {
                     material: materials[*tile].clone(),
                     sprite: Sprite::new(Vec2::new(SPRITE_SIZE, SPRITE_SIZE)),
-                    transform: Transform::from_xyz(
-                        point.column.get().as_unbounded() as f32 * SPRITE_SIZE,
-                        (floor.height.as_unbounded() as f32
-                            - point.row.get().as_unbounded() as f32)
-                            * SPRITE_SIZE,
-                        10.0,
-                    ),
+                    transform: point_to_transform(point, floor),
                     ..Default::default()
                 })
                 .insert(Tile { tile_type: *tile })
@@ -155,16 +163,81 @@ fn spawn_player_and_board(
     }
 }
 
-fn move_player(
+fn point_to_transform(point: Point, floor: &dungeon::Floor) -> Transform {
+    Transform::from_xyz(
+        point.column.get().as_unbounded() as f32 * SPRITE_SIZE,
+        (floor.height.as_unbounded() as f32 - point.row.get().as_unbounded() as f32) * SPRITE_SIZE,
+        10.0,
+    )
+}
+
+fn smooth_player_movement(
+    dungeon: Res<Dungeon>,
+    mut player_state: ResMut<PlayerState>,
+    mut player_position: Query<&mut Position, With<Player>>,
+    mut player_transform: Query<&mut Transform, With<Player>>,
+) {
+    let floor = dungeon.floors.first().unwrap();
+    let mut position = match player_position.single_mut() {
+        Ok(it) => it,
+        _ => return,
+    };
+
+    let mut transform = match player_transform.single_mut() {
+        Ok(it) => it,
+        _ => return,
+    };
+
+    match *player_state {
+        PlayerState::Moving {
+            destination: point,
+            steps_left,
+        } => {
+            const MOVEMENT_STEPS: u8 = 10;
+            match steps_left {
+                0 => {
+                    *player_state = PlayerState::Still;
+                    position.0 = point;
+                    return;
+                }
+                1..=MOVEMENT_STEPS => {
+                    *player_state = PlayerState::Moving {
+                        destination: point,
+                        steps_left: steps_left - 1,
+                    };
+                    transform.translation = transform.translation.lerp(
+                        point_to_transform(point, floor).translation,
+                        (MOVEMENT_STEPS - steps_left) as f32 / MOVEMENT_STEPS as f32,
+                    );
+                    return;
+                }
+                _ => panic!(),
+            }
+        }
+        PlayerState::Still => return,
+    }
+}
+
+fn distance(t1: &Transform, t2: &Transform) -> f32 {
+    ((t1.translation.x - t2.translation.x).powi(2) + (t1.translation.y - t2.translation.y).powi(2))
+        .sqrt()
+}
+
+fn player_movement_input_handling(
     keyboard_input: Res<Input<KeyCode>>,
     dungeon: Res<Dungeon>,
-    mut player_position: Query<&mut Position, With<Player>>,
+    mut player_state: ResMut<PlayerState>,
+    player_position: Query<&Position, With<Player>>,
     mut transforms: Query<&mut Transform, Or<(With<Camera>, With<Player>)>>,
 ) {
     let floor = &dungeon.floors[0];
 
-    if let Ok(mut position) = player_position.single_mut() {
+    if let Ok(position) = player_position.single() {
         dbg!(position.0);
+
+        if matches!(*player_state, PlayerState::Moving { .. }) {
+            return;
+        };
 
         let mut new_pos = Position { ..*position };
         if keyboard_input.pressed(KeyCode::Left) {
@@ -216,7 +289,10 @@ fn move_player(
         if floor.data.at(new_pos.0, floor.width).is_wall() {
             return;
         } else {
-            *position = new_pos;
+            *player_state = PlayerState::Moving {
+                destination: new_pos.0,
+                steps_left: 10,
+            };
         }
 
         for mut transform in transforms.iter_mut() {
