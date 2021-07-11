@@ -21,12 +21,8 @@ fn main() {
         )
         .add_plugins(DefaultPlugins)
         .add_system(player_movement_input_handling.system())
-        .add_system_set(
-            SystemSet::new()
-                // This prints out "hello world" once every second
-                .with_run_criteria(FixedTimestep::step(1.0 / 60.0))
-                .with_system(smooth_player_movement.system()),
-        )
+        .add_system(camera_player_tracking.system())
+        .add_system(smooth_player_movement.system())
         // .add_system_set_to_stage(
         //     CoreStage::PostUpdate,
         //     SystemSet::new()
@@ -36,8 +32,9 @@ fn main() {
         .run();
 }
 
+#[derive(Debug)]
 pub enum PlayerState {
-    Moving { destination: Point, steps_left: u8 },
+    Moving { destination: Point, timer: Timer },
     Still,
 }
 
@@ -172,6 +169,7 @@ fn point_to_transform(point: Point, floor: &dungeon::Floor) -> Transform {
 }
 
 fn smooth_player_movement(
+    time: Res<Time>,
     dungeon: Res<Dungeon>,
     mut player_state: ResMut<PlayerState>,
     mut player_position: Query<&mut Position, With<Player>>,
@@ -188,34 +186,44 @@ fn smooth_player_movement(
         _ => return,
     };
 
+    let mut done_moving = false;
+    // dbg!(&*player_state);
     match *player_state {
         PlayerState::Moving {
-            destination: point,
-            steps_left,
+            destination,
+            ref mut timer,
         } => {
-            const MOVEMENT_STEPS: u8 = 10;
-            match steps_left {
-                0 => {
-                    *player_state = PlayerState::Still;
-                    position.0 = point;
-                    return;
-                }
-                1..=MOVEMENT_STEPS => {
-                    *player_state = PlayerState::Moving {
-                        destination: point,
-                        steps_left: steps_left - 1,
-                    };
-                    transform.translation = transform.translation.lerp(
-                        point_to_transform(point, floor).translation,
-                        (MOVEMENT_STEPS - steps_left) as f32 / MOVEMENT_STEPS as f32,
-                    );
-                    return;
-                }
-                _ => panic!(),
+            timer.tick(time.delta());
+
+            transform.translation = point_to_transform(position.0, floor).translation.lerp(
+                point_to_transform(destination, floor).translation,
+                timer.percent(),
+            );
+
+            if timer.finished() {
+                done_moving = true;
+                position.0 = destination;
+                println!("timer finished");
             }
+            // dbg!(timer);
         }
         PlayerState::Still => return,
     }
+
+    if done_moving {
+        println!("set player to still");
+        *player_state = PlayerState::Still;
+    }
+    dbg!(&*player_state);
+}
+
+fn camera_player_tracking(
+    mut set: QuerySet<(
+        Query<&Transform, With<Player>>,
+        Query<&mut Transform, With<Camera>>,
+    )>,
+) {
+    set.q1_mut().single_mut().unwrap().translation = set.q0().single().unwrap().translation;
 }
 
 fn distance(t1: &Transform, t2: &Transform) -> f32 {
@@ -233,8 +241,6 @@ fn player_movement_input_handling(
     let floor = &dungeon.floors[0];
 
     if let Ok(position) = player_position.single() {
-        dbg!(position.0);
-
         if matches!(*player_state, PlayerState::Moving { .. }) {
             return;
         };
@@ -251,8 +257,7 @@ fn player_movement_input_handling(
             } else {
                 return;
             };
-        }
-        if keyboard_input.pressed(KeyCode::Right) {
+        } else if keyboard_input.pressed(KeyCode::Right) {
             new_pos.0.column = if let Ok(col) = position.0.column + 1 {
                 if col.get() < floor.width.expand_lower() {
                     col
@@ -262,8 +267,7 @@ fn player_movement_input_handling(
             } else {
                 return;
             };
-        }
-        if keyboard_input.pressed(KeyCode::Down) {
+        } else if keyboard_input.pressed(KeyCode::Down) {
             new_pos.0.row = if let Ok(row) = position.0.row + 1 {
                 if row.get() < floor.height.expand_lower() {
                     row
@@ -273,8 +277,7 @@ fn player_movement_input_handling(
             } else {
                 return;
             };
-        }
-        if keyboard_input.pressed(KeyCode::Up) {
+        } else if keyboard_input.pressed(KeyCode::Up) {
             new_pos.0.row = if let Ok(row) = position.0.row - 1 {
                 if row.get() < floor.height.expand_lower() {
                     row
@@ -286,64 +289,32 @@ fn player_movement_input_handling(
             };
         }
 
+        if new_pos.0 == position.0 {
+            return;
+        }
+
         if floor.data.at(new_pos.0, floor.width).is_wall() {
             return;
         } else {
             *player_state = PlayerState::Moving {
                 destination: new_pos.0,
-                steps_left: 10,
+                timer: Timer::from_seconds(0.2, false),
             };
         }
 
-        for mut transform in transforms.iter_mut() {
-            if keyboard_input.pressed(KeyCode::Left) {
-                transform.translation.x -= SPRITE_SIZE;
-            }
-            if keyboard_input.pressed(KeyCode::Right) {
-                transform.translation.x += SPRITE_SIZE;
-            }
-            if keyboard_input.pressed(KeyCode::Down) {
-                transform.translation.y -= SPRITE_SIZE;
-            }
-            if keyboard_input.pressed(KeyCode::Up) {
-                transform.translation.y += SPRITE_SIZE;
-            }
-        }
+        // for mut transform in transforms.iter_mut() {
+        //     if keyboard_input.pressed(KeyCode::Left) {
+        //         transform.translation.x -= SPRITE_SIZE;
+        //     }
+        //     if keyboard_input.pressed(KeyCode::Right) {
+        //         transform.translation.x += SPRITE_SIZE;
+        //     }
+        //     if keyboard_input.pressed(KeyCode::Down) {
+        //         transform.translation.y -= SPRITE_SIZE;
+        //     }
+        //     if keyboard_input.pressed(KeyCode::Up) {
+        //         transform.translation.y += SPRITE_SIZE;
+        //     }
+        // }
     }
 }
-
-fn position_translation(windows: Res<Windows>, mut q: Query<(&Position, &mut Transform)>) {
-    fn convert(pos: f32, bound_window: f32, bound_game: f32) -> f32 {
-        let tile_size = bound_window / bound_game;
-        pos / bound_game * bound_window - (bound_window / 2.) + (tile_size / 2.)
-    }
-    let window = windows.get_primary().unwrap();
-    for (pos, mut transform) in q.iter_mut() {
-        transform.translation = Vec3::new(
-            convert(
-                pos.0.column.get().as_unbounded() as f32,
-                window.width() as f32,
-                ARENA_WIDTH as f32,
-            ),
-            convert(
-                pos.0.row.get().as_unbounded() as f32,
-                window.height() as f32,
-                ARENA_HEIGHT as f32,
-            ),
-            0.0,
-        );
-    }
-}
-
-fn size_scaling(windows: Res<Windows>, mut q: Query<(&Size, &mut Sprite)>) {
-    let window = windows.get_primary().unwrap();
-    for (sprite_size, mut sprite) in q.iter_mut() {
-        sprite.size = Vec2::new(
-            sprite_size.width / ARENA_WIDTH as f32 * window.width() as f32,
-            sprite_size.height / ARENA_HEIGHT as f32 * window.height() as f32,
-        );
-    }
-}
-
-const ARENA_WIDTH: i32 = 10;
-const ARENA_HEIGHT: i32 = 10;
