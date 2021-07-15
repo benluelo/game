@@ -103,6 +103,24 @@ impl Floor {
     ) -> Self {
         FloorBuilder::create(id, width, height, gif_output)
     }
+
+    pub fn iter_points_and_tiles(&self) -> impl Iterator<Item = (Point, &DungeonTile)> + '_ {
+        let height = self.height.expand_lower();
+
+        self.width
+            .expand_lower()
+            .range_from(&0.try_into().unwrap())
+            .map(move |column| {
+                height.range_from(&0.try_into().unwrap()).map(move |row| {
+                    let point = Point {
+                        column: Column::new(column),
+                        row: Row::new(row),
+                    };
+                    (point, self.data.at(point, self.width))
+                })
+            })
+            .flatten()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
