@@ -74,12 +74,12 @@ impl FloorBuilder<Blank> {
         // find a path through the noise map and apply the found path to the walls map
         let start = Point {
             row: Row::new(
-                rng.gen_range(0..self.height.as_unbounded())
+                rng.gen_range(1..(self.height.as_unbounded() - 1))
                     .try_into()
                     .unwrap(),
             ),
             column: Column::new(
-                rng.gen_range(0..self.width.as_unbounded())
+                rng.gen_range(1..(self.width.as_unbounded() - 1))
                     .try_into()
                     .unwrap(),
             ),

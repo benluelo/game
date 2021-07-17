@@ -46,6 +46,33 @@ impl Point {
             row: self.row,
         }
     }
+
+    pub fn add_row(self, n: u16) -> Result<Self, BoundedIntOverflow> {
+        Ok(Self {
+            row: Row(self.row.0.add(n)?),
+            column: self.column,
+        })
+    }
+
+    pub fn sub_row(self, n: u16) -> Result<Self, BoundedIntUnderflow> {
+        Ok(Self {
+            row: Row(self.row.0.sub(n)?),
+            column: self.column,
+        })
+    }
+    pub fn add_column(self, n: u16) -> Result<Self, BoundedIntOverflow> {
+        Ok(Self {
+            column: Column(self.column.0.add(n)?),
+            row: self.row,
+        })
+    }
+
+    pub fn sub_column(self, n: u16) -> Result<Self, BoundedIntUnderflow> {
+        Ok(Self {
+            column: Column(self.column.0.sub(n)?),
+            row: self.row,
+        })
+    }
 }
 
 impl Add for Point {

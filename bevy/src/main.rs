@@ -8,7 +8,7 @@ use std::{convert::TryInto, num::NonZeroU16};
 
 use bevy::utils::{StableHashMap, StableHashSet};
 use bevy::{prelude::*, render::camera::Camera};
-use dungeon::{Column, Dungeon, DungeonTile, DungeonType, Point, PointIndex, Row};
+use dungeon::{Column, Dungeon, DungeonTile, DungeonType, Floor, Point, PointIndex, Row};
 
 use crate::constants::{PLAYER_MOVEMENT_DELAY_SECONDS, PLAYER_Z_INDEX};
 
@@ -232,7 +232,9 @@ fn setup(
         false,
     ));
     commands.insert_resource(Materials {
-        empty_material: materials.add(Color::WHITE.into()),
+        empty_material: materials.add(
+            /* Color::WHITE.into() */ server.load("empty.png").into(),
+        ),
         wall_material: materials.add(Color::BLACK.into()),
         secret_door_material: materials.add(Color::RED.into()),
         secret_passage_material: materials.add(Color::LIME_GREEN.into()),
@@ -251,10 +253,11 @@ pub struct Tile {
 //         It would make the code a bit more DRY, but might mess with parallelization
 //         within bevy, since we need mutable access to the `PlayerDirection` every
 //         frame LINK bevy/src/main.rs#key_press_handling
+#[derive(Debug, PartialEq, Clone, Copy)]
 enum PlayerDirection {
     Up,
-    Down,
     Left,
+    Down,
     Right,
 }
 
@@ -267,7 +270,7 @@ impl PlayerDirection {
     ///            0
     ///            ^
     ///            UP
-    /// π/2 < LEFT    RIGHT > 2π/3
+    /// π/2 < LEFT    RIGHT > 3π/2
     ///           DOWN
     ///            v
     ///            π
@@ -275,10 +278,24 @@ impl PlayerDirection {
     fn to_rotation(&self) -> Quat {
         Quat::from_rotation_z(match self {
             PlayerDirection::Up => 0.0,
-            PlayerDirection::Left => PI / 2.0,
-            PlayerDirection::Down => PI,
             PlayerDirection::Right => 3.0 * PI / 2.0,
+            PlayerDirection::Down => PI,
+            PlayerDirection::Left => PI / 2.0,
         })
+    }
+
+    fn move_player(&self, from: &Point, floor: &Floor) -> Option<Point> {
+        let new_point = match self {
+            PlayerDirection::Up => from.sub_row(1).ok()?,
+            PlayerDirection::Right => from.add_column(1).ok()?,
+            PlayerDirection::Down => from.add_row(1).ok()?,
+            PlayerDirection::Left => from.sub_column(1).ok()?,
+        };
+        if floor.at(new_point).is_wall() {
+            None
+        } else {
+            Some(new_point)
+        }
     }
 }
 
@@ -479,98 +496,51 @@ fn player_movement_input_handling(
 ) {
     let floor = &dungeon.floors[0];
 
-    if let Ok(position) = player_position.single() {
+    if let Ok(player_position) = player_position.single() {
         if matches!(*player_state, PlayerState::Moving { .. }) {
             return;
         };
 
         let mut player_direction = player_direction.single_mut().unwrap();
 
-        let mut new_pos = Position { ..*position };
-
-        // FIXME: This is very *not* DRY. I can smell the logic bugs from here. Do something about it.
-        //
-        // Maybe a function that returns a `TemporaryPoint` with the same fields as a [`dungeon::Point`],
-        // except `Option`-al? then we could use the `?` operator instead of `return;` everywhere.
-        // Really wish try blocks were stable
-        if keyboard_input.pressed(KeyCode::Left) {
-            *player_direction = PlayerDirection::Left;
-
-            if key_press_time.0.get(&KeyCode::Left).unwrap_or(&0.0) >= &PLAYER_MOVEMENT_DELAY_SECONDS {
-                new_pos.0.column = if let Ok(col) = position.0.column - 1 {
-                    if col.get() < floor.width.expand_lower() {
-                        col
+        if let Some((new_direction, &time_pressed)) = key_press_time
+            .0
+            .iter()
+            .filter_map(|(k, v)| match k {
+                KeyCode::Up => Some((PlayerDirection::Up, v)),
+                KeyCode::Down => Some((PlayerDirection::Down, v)),
+                KeyCode::Left => Some((PlayerDirection::Left, v)),
+                KeyCode::Right => Some((PlayerDirection::Right, v)),
+                _ => None,
+            })
+            .reduce(|a, b| if a.1 >= b.1 { a } else { b })
+        {
+            // tap to change direction
+            if time_pressed < PLAYER_MOVEMENT_DELAY_SECONDS && new_direction != *player_direction {
+                {
+                    *player_direction = new_direction;
+                    return;
+                }
+            }
+            // if tap is in the direction the player is already facing, move in that direction,
+            // or, if the key has been pressed for long enough, move in that direction
+            else if new_direction == *player_direction
+                || time_pressed >= PLAYER_MOVEMENT_DELAY_SECONDS
+            {
+                *player_direction = new_direction;
+                *player_state = PlayerState::Moving {
+                    destination: if let Some(p) =
+                        new_direction.move_player(&player_position.0, floor)
+                    {
+                        p
                     } else {
                         return;
-                    }
-                } else {
-                    return;
-                };
-            } else {
-                return;
-            };
-        } else if keyboard_input.pressed(KeyCode::Right) {
-            *player_direction = PlayerDirection::Right;
-
-            if key_press_time.0.get(&KeyCode::Right).unwrap_or(&0.0) >= &PLAYER_MOVEMENT_DELAY_SECONDS {
-                new_pos.0.column = if let Ok(col) = position.0.column + 1 {
-                    if col.get() < floor.width.expand_lower() {
-                        col
-                    } else {
-                        return;
-                    }
-                } else {
-                    return;
-                };
-            } else {
-                return;
-            };
-        } else if keyboard_input.pressed(KeyCode::Down) {
-            *player_direction = PlayerDirection::Down;
-
-            if key_press_time.0.get(&KeyCode::Down).unwrap_or(&0.0) >= &PLAYER_MOVEMENT_DELAY_SECONDS {
-                new_pos.0.row = if let Ok(row) = position.0.row + 1 {
-                    if row.get() < floor.height.expand_lower() {
-                        row
-                    } else {
-                        return;
-                    }
-                } else {
-                    return;
-                };
-            } else {
-                return;
-            };
-        } else if keyboard_input.pressed(KeyCode::Up) {
-            *player_direction = PlayerDirection::Up;
-
-            if key_press_time.0.get(&KeyCode::Up).unwrap_or(&0.0) >= &PLAYER_MOVEMENT_DELAY_SECONDS {
-                new_pos.0.row = if let Ok(row) = position.0.row - 1 {
-                    if row.get() < floor.height.expand_lower() {
-                        row
-                    } else {
-                        return;
-                    }
-                } else {
-                    return;
-                };
-            } else {
-                return;
-            };
-        }
-
-        // if nothing's changed, return
-        if new_pos.0 == position.0 {
-            return;
-        }
-
-        if floor.data.at(new_pos.0, floor.width).is_wall() {
-            return;
+                    },
+                    timer: Timer::from_seconds(0.2, false),
+                }
+            }
         } else {
-            *player_state = PlayerState::Moving {
-                destination: new_pos.0,
-                timer: Timer::from_seconds(0.2, false),
-            };
+            return;
         }
     }
 }

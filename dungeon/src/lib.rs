@@ -121,6 +121,14 @@ impl Floor {
             })
             .flatten()
     }
+
+    pub fn at(&self, point: Point) -> &DungeonTile {
+        self.data.at(point, self.width)
+    }
+
+    pub fn at_mut(&mut self, point: Point) -> &mut DungeonTile {
+        self.data.at_mut(point, self.width)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
