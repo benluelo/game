@@ -9,3 +9,4 @@ bevy = { version = "0.5.0", features = ["dynamic", "png"] }
 #  }
 rand = "0.8.4"
 dungeon = { path = "../dungeon" }
+num-traits = "0.2.14"

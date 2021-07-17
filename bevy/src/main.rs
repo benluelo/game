@@ -1,12 +1,16 @@
+pub mod constants;
+
+use constants::{SPRITE_SIZE, TILE_Z_INDEX};
+use num_traits::identities::Zero;
 use std::f32::consts::PI;
 use std::ops::Index;
 use std::{convert::TryInto, num::NonZeroU16};
 
-use bevy::asset::Asset;
-use bevy::core::FixedTimestep;
 use bevy::utils::{StableHashMap, StableHashSet};
 use bevy::{prelude::*, render::camera::Camera};
 use dungeon::{Column, Dungeon, DungeonTile, DungeonType, Point, PointIndex, Row};
+
+use crate::constants::{PLAYER_MOVEMENT_DELAY_SECONDS, PLAYER_Z_INDEX};
 
 fn main() {
     App::build()
@@ -243,6 +247,10 @@ pub struct Tile {
     tile_type: DungeonTile,
 }
 
+// REVIEW: Maybe make this a generic `Direction`, not tied to the player specifically?
+//         It would make the code a bit more DRY, but might mess with parallelization
+//         within bevy, since we need mutable access to the `PlayerDirection` every
+//         frame LINK bevy/src/main.rs#key_press_handling
 enum PlayerDirection {
     Up,
     Down,
@@ -251,11 +259,24 @@ enum PlayerDirection {
 }
 
 impl PlayerDirection {
+    /// Returns the respective [`Quat`] for the [`PlayerDirection`], rotated
+    /// along the z axis. Used for changing which direction the player is
+    /// facing.
+    ///
+    /// ```no-run
+    ///            0
+    ///            ^
+    ///            UP
+    /// π/2 < LEFT    RIGHT > 2π/3
+    ///           DOWN
+    ///            v
+    ///            π
+    /// ```
     fn to_rotation(&self) -> Quat {
         Quat::from_rotation_z(match self {
             PlayerDirection::Up => 0.0,
-            PlayerDirection::Down => 2.0 * PI / 2.0,
             PlayerDirection::Left => PI / 2.0,
+            PlayerDirection::Down => PI,
             PlayerDirection::Right => 3.0 * PI / 2.0,
         })
     }
@@ -293,6 +314,7 @@ impl Index<DungeonTile> for Materials {
 #[derive(Debug)]
 struct KeyPressTime(StableHashMap<KeyCode, f32>);
 
+// ANCHOR[id=key_press_handling]
 fn key_press_handling(
     mut key_press_time: ResMut<KeyPressTime>,
     keyboard_input: Res<Input<KeyCode>>,
@@ -303,7 +325,7 @@ fn key_press_handling(
     let newly_pressed_keys = keyboard_input
         .get_pressed()
         .filter(|x| !key_press_time.0.contains_key(*x))
-        .map(|x| (*x, 0.0f32));
+        .map(|x| (*x, f32::zero()));
 
     // key_press_time.0.extend(newly_pressed_keys);
 
@@ -321,13 +343,10 @@ fn key_press_handling(
         })
         .chain(newly_pressed_keys)
         .collect();
-    // dbg!(&*key_press_time);
+    dbg!(&*key_press_time);
 }
 
 pub struct Position(Point);
-
-const PLAYER_Z_INDEX: f32 = 20.0;
-const SPRITE_SIZE: f32 = 15.0;
 
 fn spawn_player_and_board(
     mut commands: Commands,
@@ -361,7 +380,7 @@ fn tile_sprite_bundle(
     SpriteBundle {
         material: materials[*tile].clone(),
         sprite: Sprite::new(Vec2::new(SPRITE_SIZE, SPRITE_SIZE)),
-        transform: point_to_transform(point, floor),
+        transform: point_to_transform(point, floor, TILE_Z_INDEX),
         ..Default::default()
     }
 }
@@ -384,14 +403,15 @@ fn player_sprite_bundle(
     }
 }
 
-fn point_to_transform(point: Point, floor: &dungeon::Floor) -> Transform {
+fn point_to_transform(point: Point, floor: &dungeon::Floor, z_index: f32) -> Transform {
     Transform::from_xyz(
         point.column.get().as_unbounded() as f32 * SPRITE_SIZE,
         (floor.height.as_unbounded() as f32 - point.row.get().as_unbounded() as f32) * SPRITE_SIZE,
-        10.0,
+        z_index,
     )
 }
 
+/// Moves the player between squares smoothly.
 fn smooth_player_movement(
     time: Res<Time>,
     dungeon: Res<Dungeon>,
@@ -401,15 +421,9 @@ fn smooth_player_movement(
     mut player_transform: Query<&mut Transform, With<Player>>,
 ) {
     let floor = dungeon.floors.first().unwrap();
-    let mut position = match player_position.single_mut() {
-        Ok(it) => it,
-        _ => return,
-    };
+    let mut position = player_position.single_mut().unwrap();
 
-    let mut transform = match player_transform.single_mut() {
-        Ok(it) => it,
-        _ => return,
-    };
+    let mut transform = player_transform.single_mut().unwrap();
 
     transform.rotation = player_direction.single().unwrap().to_rotation();
 
@@ -422,26 +436,24 @@ fn smooth_player_movement(
         } => {
             timer.tick(time.delta());
 
-            transform.translation = point_to_transform(position.0, floor).translation.lerp(
-                point_to_transform(destination, floor).translation,
-                timer.percent(),
-            );
+            transform.translation = point_to_transform(position.0, floor, TILE_Z_INDEX)
+                .translation
+                .lerp(
+                    point_to_transform(destination, floor, TILE_Z_INDEX).translation,
+                    timer.percent(),
+                );
 
             if timer.finished() {
                 done_moving = true;
                 position.0 = destination;
-                println!("timer finished");
             }
-            // dbg!(timer);
         }
         PlayerState::Still => return,
     }
 
     if done_moving {
-        println!("set player to still");
         *player_state = PlayerState::Still;
     }
-    dbg!(&*player_state);
 }
 
 /// makes the camera follow the player.
@@ -456,10 +468,7 @@ fn camera_player_tracking(
     set.q1_mut().single_mut().unwrap().translation = set.q0().single().unwrap().translation;
 }
 
-// TODO: if the player is facing the directino tapped, move that direction regardless of how long the key is pressed
-const MOVEMENT_DELAY: f32 = 0.05;
-
-/// changes the player's internal [`dungeon::Point`] according to the input.
+/// Moves the player by changing it's internal [`dungeon::Point`] according to the input.
 fn player_movement_input_handling(
     key_press_time: ResMut<KeyPressTime>,
     keyboard_input: Res<Input<KeyCode>>,
@@ -478,9 +487,16 @@ fn player_movement_input_handling(
         let mut player_direction = player_direction.single_mut().unwrap();
 
         let mut new_pos = Position { ..*position };
+
+        // FIXME: This is very *not* DRY. I can smell the logic bugs from here. Do something about it.
+        //
+        // Maybe a function that returns a `TemporaryPoint` with the same fields as a [`dungeon::Point`],
+        // except `Option`-al? then we could use the `?` operator instead of `return;` everywhere.
+        // Really wish try blocks were stable
         if keyboard_input.pressed(KeyCode::Left) {
             *player_direction = PlayerDirection::Left;
-            if key_press_time.0.get(&KeyCode::Left).unwrap_or(&0.0) >= &MOVEMENT_DELAY {
+
+            if key_press_time.0.get(&KeyCode::Left).unwrap_or(&0.0) >= &PLAYER_MOVEMENT_DELAY_SECONDS {
                 new_pos.0.column = if let Ok(col) = position.0.column - 1 {
                     if col.get() < floor.width.expand_lower() {
                         col
@@ -495,7 +511,8 @@ fn player_movement_input_handling(
             };
         } else if keyboard_input.pressed(KeyCode::Right) {
             *player_direction = PlayerDirection::Right;
-            if key_press_time.0.get(&KeyCode::Right).unwrap_or(&0.0) >= &MOVEMENT_DELAY {
+
+            if key_press_time.0.get(&KeyCode::Right).unwrap_or(&0.0) >= &PLAYER_MOVEMENT_DELAY_SECONDS {
                 new_pos.0.column = if let Ok(col) = position.0.column + 1 {
                     if col.get() < floor.width.expand_lower() {
                         col
@@ -510,7 +527,8 @@ fn player_movement_input_handling(
             };
         } else if keyboard_input.pressed(KeyCode::Down) {
             *player_direction = PlayerDirection::Down;
-            if key_press_time.0.get(&KeyCode::Down).unwrap_or(&0.0) >= &MOVEMENT_DELAY {
+
+            if key_press_time.0.get(&KeyCode::Down).unwrap_or(&0.0) >= &PLAYER_MOVEMENT_DELAY_SECONDS {
                 new_pos.0.row = if let Ok(row) = position.0.row + 1 {
                     if row.get() < floor.height.expand_lower() {
                         row
@@ -526,7 +544,7 @@ fn player_movement_input_handling(
         } else if keyboard_input.pressed(KeyCode::Up) {
             *player_direction = PlayerDirection::Up;
 
-            if key_press_time.0.get(&KeyCode::Up).unwrap_or(&0.0) >= &MOVEMENT_DELAY {
+            if key_press_time.0.get(&KeyCode::Up).unwrap_or(&0.0) >= &PLAYER_MOVEMENT_DELAY_SECONDS {
                 new_pos.0.row = if let Ok(row) = position.0.row - 1 {
                     if row.get() < floor.height.expand_lower() {
                         row
