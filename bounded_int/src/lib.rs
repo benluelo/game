@@ -49,7 +49,7 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
         BoundedInt(rng.gen_range(LOW..=HIGH))
     }
 
-    /// Returns a [BoundedIntRange] from `self` to `to`.
+    /// Returns a [`BoundedIntRange`] from `self` to `to`.
     ///
     /// If `to` <= `self`, the iterator will be empty.
     ///
