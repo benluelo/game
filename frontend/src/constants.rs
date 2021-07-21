@@ -19,7 +19,4 @@ pub const SPRITE_SIZE: f32 = 15.0;
 /// The delay, in seconds, between when the user presses an arrow
 /// key and when the player moves. Allows for tapping the keys to
 /// change the direction of the player without moving.
-/// 
-/// TODO: If the player is facing the direction tapped, move that
-///       direction regardless of how long the key is pressed
 pub const PLAYER_MOVEMENT_DELAY_SECONDS: f32 = 0.05;

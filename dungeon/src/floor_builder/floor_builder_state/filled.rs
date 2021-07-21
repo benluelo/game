@@ -1,4 +1,4 @@
-use crate::{point_index::PointIndex, Column, DungeonTile, Floor, FloorBuilder, Point, Row};
+use crate::{DungeonTile, Floor, FloorBuilder};
 
 use super::{FloorBuilderState, Smoothable};
 
