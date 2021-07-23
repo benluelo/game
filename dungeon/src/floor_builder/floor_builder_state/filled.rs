@@ -38,7 +38,15 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
                 }
             }
 
-            std::fs::write(format!("out/floor_{}.gif", self.id), image).unwrap();
+            let out_path = format!("out/floor_{}.gif", self.id);
+            match std::fs::write(&out_path, image) {
+                Ok(_) => {
+                    eprintln!("Successfully wrote to {}", out_path)
+                }
+                Err(err) => {
+                    eprintln!("Error writing to {}: {}", out_path, err)
+                }
+            }
         }
         Floor {
             height: self.height,

@@ -99,7 +99,7 @@ impl<S: Smoothable> FloorBuilder<S> {
 impl<S: FloorBuilderState> FloorBuilder<S> {
     fn frame_from_current_state(&mut self, delay: u16) {
         if let Some(ref mut frames) = self.frames {
-            println!("adding frame");
+            // println!("adding frame");
             frames.push(gif::Frame {
                 width: self.width.as_unbounded() as u16,
                 height: self.height.as_unbounded() as u16,
@@ -215,6 +215,25 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
             || point.row.get() == 0.try_into().unwrap()
             || point.column.get() >= (self.width.as_unbounded() - 1).try_into().unwrap()
             || point.row.get() >= (self.height.as_unbounded() - 1).try_into().unwrap()
+    }
+
+    fn get_legal_neighbors_with_diagonals(&self, point: Point) -> impl Iterator<Item = Point> + '_ {
+        #[rustfmt::skip]
+        let v = vec![
+            point.saturating_sub_row(1)
+                 .saturating_sub_column(1), point.saturating_sub_row(1), point.saturating_sub_row(1)
+                                                                              .saturating_add_row(1),
+
+            point.saturating_sub_column(1), point,                       point.saturating_add_column(1),
+
+            point.saturating_add_row(1)
+                 .saturating_sub_column(1), point.saturating_add_row(1), point.saturating_add_row(1)
+                                                                              .saturating_add_row(1),
+        ];
+
+        v.into_iter()
+            .unique()
+            .filter(move |&p| !self.is_out_of_bounds(p) && p != point)
     }
 
     fn get_legal_neighbors(&self, point: Point) -> impl Iterator<Item = Point> + '_ {

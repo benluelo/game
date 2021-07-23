@@ -24,21 +24,17 @@ pub fn key_press_handling(
     time: Res<Time>,
 ) {
     let pressed = keyboard_input.get_pressed().collect::<StableHashSet<_>>();
-    // dbg!(&pressed);
+
     let newly_pressed_keys = keyboard_input
         .get_pressed()
         .filter(|x| !key_press_time.0.contains_key(*x))
         .map(|x| (*x, f32::zero()));
 
-    // key_press_time.0.extend(newly_pressed_keys);
-
     key_press_time.0 = key_press_time
         .0
         .iter()
         .filter_map(|(k, v)| {
-            if
-            /* *v > 0.0 &&  */
-            pressed.contains(k) {
+            if pressed.contains(k) {
                 Some((*k, *v + time.delta_seconds()))
             } else {
                 None

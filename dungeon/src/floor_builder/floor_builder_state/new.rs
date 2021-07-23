@@ -28,7 +28,7 @@ impl FloorBuilder<New> {
             .draw(|_, _, _| DungeonTile::Empty)
             .smoothen(7, |_| false)
             .check_for_secret_passages()
-            // .place_treasure_chests()
+            .place_treasure_chests()
             .finish()
     }
 }

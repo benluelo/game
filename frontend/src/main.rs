@@ -14,7 +14,7 @@ use bevy::utils::{StableHashMap, StableHashSet};
 use bevy::{prelude::*, render::camera::Camera};
 use dungeon::{Dungeon, DungeonTile, DungeonType, Floor, Point, PointIndex};
 
-use crate::constants::PLAYER_MOVEMENT_DELAY_SECONDS;
+use crate::constants::{PLAYER_MOVEMENT_DELAY_SECONDS, PLAYER_MOVING_TIME_SECONDS};
 use crate::player::{Player, PlayerDirection};
 use crate::utils::{player_sprite_bundle, tile_sprite_bundle};
 
@@ -258,14 +258,11 @@ fn player_movement_input_handling(
             {
                 *player_direction = new_direction;
                 *player_state = PlayerState::Moving {
-                    destination: if let Some(p) =
-                        new_direction.try_move_to_point(&player_position.0, floor)
-                    {
-                        p
-                    } else {
-                        return;
+                    destination: match new_direction.try_move_to_point(&player_position.0, floor) {
+                        Some(p) => p,
+                        None => return,
                     },
-                    timer: Timer::from_seconds(0.2, false),
+                    timer: Timer::from_seconds(PLAYER_MOVING_TIME_SECONDS, false),
                 }
             }
         } else {

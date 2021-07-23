@@ -20,3 +20,6 @@ pub const SPRITE_SIZE: f32 = 15.0;
 /// key and when the player moves. Allows for tapping the keys to
 /// change the direction of the player without moving.
 pub const PLAYER_MOVEMENT_DELAY_SECONDS: f32 = 0.05;
+
+/// The amount of time, in seconds, it takes the player to travel between tiles.
+pub const PLAYER_MOVING_TIME_SECONDS: f32 = 0.2;

@@ -8,6 +8,6 @@ fn main() {
         150.try_into().unwrap(),
         NonZeroU16::new(10).unwrap(),
         DungeonType::Cave,
-        false,
+        true,
     );
 }

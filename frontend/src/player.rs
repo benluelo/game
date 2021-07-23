@@ -46,6 +46,7 @@ impl PlayerDirection {
         })
     }
 
+    /// Tries to move to the point provided, in the direction of `self`.
     pub fn try_move_to_point(&self, from: &Point, floor: &Floor) -> Option<Point> {
         let new_point = match self {
             PlayerDirection::Up => from.sub_row(1).ok()?,

@@ -215,6 +215,10 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
         BoundedInt(self.0)
     }
 
+    pub fn new_unwrapped(from: i32) -> BoundedInt<{ LOW }, { HIGH }> {
+        Self::new(from).unwrap()
+    }
+
     /// Expands the bounds of the BoundedInt to `LOWER` and `HIGHER`.
     /// # Examples
     /// ```rust

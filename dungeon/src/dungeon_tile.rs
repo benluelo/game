@@ -55,6 +55,7 @@ impl DungeonTile {
         matches!(self, DungeonTile::Wall)
     }
 
+    // REVIEW: Decide how this should be implemented
     pub(crate) fn is_empty(&self) -> bool {
         !self.is_wall()
         // matches!(self, DungeonTile::Empty)
