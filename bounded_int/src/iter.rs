@@ -2,6 +2,7 @@ use crate::BoundedInt;
 use std::{cmp::Ordering, convert::TryInto};
 
 pub struct BoundedIntRangeInclusive<const LOW: i32, const HIGH: i32> {
+    // REVIEW: Should the ranges keep track of their start points?
     // start: BoundedInt<{ LOW }, { HIGH }>,
     pub(super) end: BoundedInt<{ LOW }, { HIGH }>,
     pub(super) pointer: BoundedInt<{ LOW }, { HIGH }>,
@@ -32,6 +33,7 @@ impl<const LOW: i32, const HIGH: i32> Iterator for BoundedIntRangeInclusive<{ LO
 }
 
 pub struct BoundedIntRange<const LOW: i32, const HIGH: i32> {
+    // REVIEW: Should the ranges keep track of their start points?
     // start: BoundedInt<{ LOW }, { HIGH }>,
     pub(super) end: BoundedInt<{ LOW }, { HIGH }>,
     pub(super) pointer: BoundedInt<{ LOW }, { HIGH }>,

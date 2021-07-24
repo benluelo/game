@@ -54,7 +54,7 @@ impl PlayerDirection {
             PlayerDirection::Down => from.add_row(1).ok()?,
             PlayerDirection::Left => from.sub_column(1).ok()?,
         };
-        if floor.at(new_point).is_wall() {
+        if floor.at(new_point).is_solid() {
             None
         } else {
             Some(new_point)

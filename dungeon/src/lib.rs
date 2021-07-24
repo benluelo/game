@@ -1,3 +1,18 @@
+#![warn(missing_docs)]
+
+//! Dungeon creation. Creates 2d cave-like dungeons using cellular automata (among other techniques).
+//!
+//! # Examples
+//! ```rust
+//! let _ = Dungeon::new(
+//!     height.try_into().unwrap(),
+//!     width.try_into().unwrap(),
+//!     NonZeroU16::new(10).unwrap(),
+//!     DungeonType::Cave,
+//!     false,
+//! );
+//! ```
+
 pub use crate::dungeon_tile::DungeonTile;
 use border::BorderId;
 pub use floor_builder::FloorBuilder;
@@ -5,9 +20,6 @@ pub use point::*;
 use serde::{Deserialize, Serialize};
 use std::{convert::TryInto, fmt, num::NonZeroU16, usize};
 
-use bounded_int;
-// mod command;
-// mod example;
 mod border;
 mod connection_path;
 pub mod dungeon_tile;
@@ -18,24 +30,8 @@ pub use point::Point;
 pub use point_index::PointIndex;
 pub mod point_index;
 
-use crate::{
-    bounded_int::BoundedInt,
-    floor_builder::{MAX_FLOOR_SIZE, MIN_FLOOR_SIZE},
-};
-
-// bench
-pub fn create_dungeon(width: i32, height: i32) {
-    let _ = Dungeon::new(
-        height.try_into().unwrap(),
-        width.try_into().unwrap(),
-        NonZeroU16::new(10).unwrap(),
-        DungeonType::Cave,
-        false,
-    );
-}
-
-// use ansi_term::ANSIStrings;
-// use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use crate::floor_builder::{MAX_FLOOR_SIZE, MIN_FLOOR_SIZE};
+use bounded_int::BoundedInt;
 
 // ANCHOR[id=connection]
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -45,13 +41,31 @@ struct Connection {
     to: (Point, BorderId),
 }
 
+/// A 2D dungeon containing multiple floors of various sizes.
+///
+/// # Examples
+/// ```rust
+/// let _ = Dungeon::new(
+///     height.try_into().unwrap(),
+///     width.try_into().unwrap(),
+///     NonZeroU16::new(10).unwrap(),
+///     DungeonType::Cave,
+///     false,
+/// );
+/// ```
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Dungeon {
+    /// The type of the dungeon. This only affects the way the dungeon
+    /// is presented aesthetically.
     pub dungeon_type: DungeonType,
+    /// The floors of the dungeon. Will never be empty.
+    // TODO: Maybe use https://docs.rs/vec1/1.8.0/vec1/? It seems to be fairly well maintained.
     pub floors: Vec<Floor>,
 }
 
 impl Dungeon {
+    /// Encodes the dungeon to a gif, with each floor being a frame, and
+    /// returns the image as bytes.
     pub fn to_gif(&self) -> Vec<u8> {
         use gif::{Encoder, Frame, Repeat};
         use std::borrow::Cow;

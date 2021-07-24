@@ -3,19 +3,16 @@ use std::{
     ops::{Add, Mul},
 };
 
+use bounded_int::BoundedInt;
 use noise::{Billow, MultiFractal, NoiseFn, Seedable};
-use num::Integer;
 use pathfinding::prelude::dijkstra;
 use rand::{thread_rng, Rng};
 
 use crate::{
-    bounded_int::BoundedInt,
     distance,
-    {
-        floor_builder::{MAX_FLOOR_SIZE, MIN_FLOOR_SIZE, RANDOM_FILL_WALL_CHANCE},
-        point_index::PointIndex,
-        Column, DungeonTile, FloorBuilder, Point, Row,
-    },
+    floor_builder::{MAX_FLOOR_SIZE, MIN_FLOOR_SIZE, RANDOM_FILL_WALL_CHANCE},
+    point_index::PointIndex,
+    Column, DungeonTile, FloorBuilder, Point, Row,
 };
 
 use super::{filled::Filled, FloorBuilderState};
@@ -128,14 +125,14 @@ impl FloorBuilder<Blank> {
         *self.map.at_mut(end, self.width) = DungeonTile::Exit;
 
         for &point in &found_path {
-            if self.map.at(point, self.width).is_wall() && point != start && point != end {
+            if self.map.at(point, self.width).is_solid() && point != start && point != end {
                 *self.map.at_mut(point, self.width) = DungeonTile::Empty;
             }
             for neighbor in self
                 .get_legal_neighbors_down_and_right(point)
                 .collect::<Vec<_>>()
             {
-                if self.map.at(neighbor, self.width).is_wall() && point != start && point != end {
+                if self.map.at(neighbor, self.width).is_solid() && point != start && point != end {
                     *self.map.at_mut(neighbor, self.width) = DungeonTile::Empty;
                 }
             }
@@ -202,16 +199,16 @@ fn create_billow(rng: &mut impl rand::Rng) -> Billow {
         .set_seed(rng.gen())
 }
 
-fn _shift_range<I: Integer + Copy>(
-    old_value: I,
-    old_min: I,
-    old_max: I,
-    new_min: I,
-    new_max: I,
-) -> I {
-    let new_value = ((old_value - old_min) / (old_max - old_min)) * (new_max - new_min) + new_min;
-    new_value
-}
+// fn _shift_range<I: Integer + Copy>(
+//     old_value: I,
+//     old_min: I,
+//     old_max: I,
+//     new_min: I,
+//     new_max: I,
+// ) -> I {
+//     let new_value = ((old_value - old_min) / (old_max - old_min)) * (new_max - new_min) + new_min;
+//     new_value
+// }
 
 #[cfg(test)]
 mod test_noise {

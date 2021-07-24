@@ -1,14 +1,22 @@
 use std::ops::{Add, Sub};
 
-use bounded_int::ops::{BoundedIntOverflow, BoundedIntUnderflow};
+use bounded_int::{
+    ops::{BoundedIntOverflow, BoundedIntUnderflow},
+    BoundedInt,
+};
 
-use crate::{bounded_int::BoundedInt, floor_builder::MAX_FLOOR_SIZE};
+use crate::floor_builder::MAX_FLOOR_SIZE;
 
+/// A point somewhere in a [`Floor`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Point {
-    /// width
+    /// How many columns across the point is.
+    ///
+    /// Corresponds to the width of the [`Floor`].
     pub column: Column,
-    /// height
+    /// How many rows down the point is.
+    ///
+    /// Corresponds to the height of the [`Floor`].
     pub row: Row,
 }
 
@@ -91,7 +99,7 @@ impl Add for Point {
             return None;
         };
 
-        Some(Self { row, column })
+        Some(Self { column, row })
     }
 }
 
@@ -111,7 +119,7 @@ impl Sub for Point {
             return None;
         };
 
-        Some(Self { row, column })
+        Some(Self { column, row })
     }
 }
 
@@ -146,7 +154,7 @@ macro_rules! impl_row_col {
         }
 
         impl ::std::ops::Add<u16> for $t {
-            type Output = Result<Self, ::bounded_int::ops::BoundedIntOverflow>;
+            type Output = ::std::result::Result<Self, ::bounded_int::ops::BoundedIntOverflow>;
 
             fn add(self, rhs: u16) -> Self::Output {
                 Ok(Self((self.0.add(rhs))?))
@@ -154,7 +162,7 @@ macro_rules! impl_row_col {
         }
 
         impl ::std::ops::Sub<u16> for $t {
-            type Output = Result<Self, ::bounded_int::ops::BoundedIntUnderflow>;
+            type Output = ::std::result::Result<Self, ::bounded_int::ops::BoundedIntUnderflow>;
 
             fn sub(self, rhs: u16) -> Self::Output {
                 Ok(Self((self.0.sub(rhs))?))
@@ -162,7 +170,7 @@ macro_rules! impl_row_col {
         }
 
         impl ::std::ops::Add for $t {
-            type Output = Result<Self, ::bounded_int::ops::BoundedIntOverflow>;
+            type Output = ::std::result::Result<Self, ::bounded_int::ops::BoundedIntOverflow>;
 
             fn add(self, rhs: Self) -> Self::Output {
                 Ok(Self((self.0.add(rhs.0))?))
@@ -170,7 +178,7 @@ macro_rules! impl_row_col {
         }
 
         impl ::std::ops::Sub for $t {
-            type Output = Result<Self, ::bounded_int::ops::BoundedIntUnderflow>;
+            type Output = ::std::result::Result<Self, ::bounded_int::ops::BoundedIntUnderflow>;
 
             fn sub(self, rhs: Self) -> Self::Output {
                 Ok(Self((self.0.sub(rhs.0))?))

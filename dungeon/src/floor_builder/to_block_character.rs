@@ -1,4 +1,4 @@
-use crate::bounded_int::BoundedInt;
+use bounded_int::BoundedInt;
 
 use super::{MAX_FLOOR_SIZE, MIN_FLOOR_SIZE};
 

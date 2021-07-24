@@ -1,12 +1,9 @@
 use crate::{
-    bounded_int::BoundedInt,
-    FloorId,
-    {
-        dungeon_tile::DungeonTile, floor_builder::floor_builder_state::*, point_index::PointIndex,
-        Column, Point, Row,
-    },
+    dungeon_tile::DungeonTile, floor_builder::floor_builder_state::*, point_index::PointIndex,
+    Column, FloorId, Point, Row,
 };
 use ansi_term::ANSIStrings;
+use bounded_int::BoundedInt;
 use itertools::Itertools;
 use pathfinding::prelude::dijkstra;
 
@@ -142,10 +139,11 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
     /// will only return wall or empty
     fn place_wall_logic(&self, point: Point, create_new_walls: bool) -> DungeonTile {
         let what_the_tile_is_currently = self.map.at(point, self.width);
-        if match what_the_tile_is_currently {
-            DungeonTile::Empty | DungeonTile::Wall => false,
-            _ => true,
-        } {
+
+        if !matches!(
+            what_the_tile_is_currently,
+            DungeonTile::Empty | DungeonTile::Wall
+        ) {
             return *what_the_tile_is_currently;
         }
 
@@ -157,7 +155,7 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
 
         let num_walls_1_away = self.get_adjacent_walls(point, 1, 1);
 
-        if self.map.at(point, self.width).is_wall() {
+        if self.map.at(point, self.width).is_solid() {
             if num_walls_1_away >= 4 {
                 return Wall;
             }
@@ -174,6 +172,8 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
         Empty
     }
 
+    /// Returns how many walls there are within the rectangle bounded by `distance_x`
+    /// left and right of the point and `distance_y` above and below the point.
     pub fn get_adjacent_walls(&self, point: Point, distance_x: i32, distance_y: i32) -> usize {
         let start_x = point.row.get().saturating_sub(distance_x);
         let start_y = point.column.get().saturating_sub(distance_y);
@@ -203,7 +203,7 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
             return true;
         }
 
-        if self.map.at(point, self.width).is_wall() {
+        if self.map.at(point, self.width).is_solid() {
             return true;
         }
         false

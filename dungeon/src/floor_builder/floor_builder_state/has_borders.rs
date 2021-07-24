@@ -24,6 +24,7 @@ pub enum BuildConnectionIterations {
     Finite(u8),
     /// Until there are at most the specified amount of sccs; guaranteed
     /// to be `<=` the specified amount.
+    #[allow(dead_code)]
     Until(u8),
 }
 

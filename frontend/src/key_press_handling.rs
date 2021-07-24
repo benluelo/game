@@ -10,9 +10,11 @@ pub fn system() -> impl Into<SystemDescriptor> {
     key_press_handling.system().label(KeyPressHandling)
 }
 
+/// [`SystemLabel`] for [`key_press_handling`].
 #[derive(SystemLabel, Debug, PartialEq, Eq, Clone, Hash)]
 pub struct KeyPressHandling;
 
+/// Contains all the keys that are currently pressed and how long they have been pressed.
 #[derive(Debug)]
 pub struct KeyPressTime(pub StableHashMap<KeyCode, f32>);
 

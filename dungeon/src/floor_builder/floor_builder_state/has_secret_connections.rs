@@ -43,7 +43,7 @@ impl FloorBuilder<HasSecretPassages> {
         empty_points_sorted_by_noise.shuffle(&mut rng);
 
         for point in empty_points_sorted_by_noise {
-            if let Some(_) = amount.peek() {
+            if amount.peek().is_some() {
                 if self
                     .get_legal_neighbors_with_diagonals(point)
                     .all(|point| self.map.at(point, self.width) == &DungeonTile::Empty)

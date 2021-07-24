@@ -1,13 +1,12 @@
 use crate::{
-    bounded_int::BoundedInt,
-    FloorId,
-    {
-        floor_builder::{MAX_FLOOR_SIZE, MIN_FLOOR_SIZE},
-        DungeonTile, Floor, FloorBuilder,
-    },
+    floor_builder::{MAX_FLOOR_SIZE, MIN_FLOOR_SIZE},
+    DungeonTile, Floor, FloorBuilder, FloorId,
 };
 
+use bounded_int::BoundedInt;
+
 use super::{blank::Blank, has_borders::BuildConnectionIterations, FloorBuilderState};
+
 #[derive(Debug)]
 pub struct New {}
 impl FloorBuilderState for New {}

@@ -1,4 +1,4 @@
-use crate::bounded_int::BoundedInt;
+use bounded_int::BoundedInt;
 
 use super::Point;
 
@@ -63,11 +63,8 @@ use super::Point;
 ///
 /// use game::{
 ///     bounded_int::BoundedInt,
-///     {
-///         point_index::PointIndex,
-///             Point,
-///         Column, Row,
-///     },
+///     point_index::PointIndex,
+///     Point, Column, Row,
 /// };
 ///
 /// const WIDTH: i32 = 4;

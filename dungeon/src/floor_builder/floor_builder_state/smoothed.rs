@@ -113,7 +113,10 @@ impl FloorBuilder<Smoothed> {
                     .trace_connection_paths(false, false)
                     .draw(|is_first, is_last, _| {
                         if is_first || is_last {
-                            DungeonTile::SecretDoor { requires_key: true }
+                            DungeonTile::SecretDoor {
+                                requires_key: true,
+                                is_open: false,
+                            }
                         } else {
                             DungeonTile::SecretPassage
                         }

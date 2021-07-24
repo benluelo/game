@@ -15,6 +15,7 @@ pub enum BoundedIntError {
     TooLow(i32),
 }
 
+// TODO: Move assertions to where clause once const_evaluatable_checked is stabilized
 impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     pub const LOW: i32 = LOW;
     pub const HIGH: i32 = HIGH;
