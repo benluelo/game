@@ -20,15 +20,23 @@ pub use point::*;
 use serde::{Deserialize, Serialize};
 use std::{convert::TryInto, fmt, num::NonZeroU16, usize};
 
+/// The various things a tile can be in a dungeon floor.
+///
+/// See the type-level documentation for more information.
+pub mod dungeon_tile;
+/// A 1-dimensional type representing a 2-dimensional grid, indexable by a [`Point`].
+///
+/// See the type-level documentation for more information.
+pub mod point_index;
+
 mod border;
 mod connection_path;
-pub mod dungeon_tile;
 mod floor_builder;
 mod r#macro;
 mod point;
+
 pub use point::Point;
 pub use point_index::PointIndex;
-pub mod point_index;
 
 use crate::floor_builder::{MAX_FLOOR_SIZE, MIN_FLOOR_SIZE};
 use bounded_int::BoundedInt;
@@ -101,14 +109,21 @@ impl Dungeon {
     }
 }
 
+/// A floor of a [`Dungeon`].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Floor {
+    /// width
     pub width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
+
+    /// height
     pub height: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
+
+    /// data
     pub data: Vec<DungeonTile>,
 }
 
 impl Floor {
+    /// Creates a new floor with the given parameters.
     pub fn new(
         id: FloorId,
         width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
@@ -118,6 +133,7 @@ impl Floor {
         FloorBuilder::create(id, width, height, gif_output)
     }
 
+    /// Returns an iterator over the tiles in the floor and their respective [`Point`].
     pub fn iter_points_and_tiles(&self) -> impl Iterator<Item = (Point, &DungeonTile)> + '_ {
         let height = self.height.expand_lower();
 
@@ -136,15 +152,18 @@ impl Floor {
             .flatten()
     }
 
+    /// Returns a refrence to the tile at the specified point.
     pub fn at(&self, point: Point) -> &DungeonTile {
         self.data.at(point, self.width)
     }
 
+    /// Returns a mutable reference to the tile at the specified point.
     pub fn at_mut(&mut self, point: Point) -> &mut DungeonTile {
         self.data.at_mut(point, self.width)
     }
 }
 
+/// A unique, opaque ID assigned to each floor upon creation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
 pub struct FloorId(u16);
 
@@ -155,6 +174,7 @@ impl fmt::Display for FloorId {
 }
 
 impl Dungeon {
+    /// Creates a new dungeon with the specified paramaters.
     pub fn new(
         height: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
         width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
@@ -171,18 +191,27 @@ impl Dungeon {
         }
     }
 
+    /// Returns the dungeon as JSON.
     pub fn to_json(&self) -> Result<String, serde_json::Error> {
         serde_json::to_string(self)
     }
 }
 
+/// The different types of dungeon a [`Dungeon`] can be.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum DungeonType {
+    /// A cave dungeon.
+    ///
+    /// Should be rocky and have a 'gloomy' atmosphere to it.
     Cave,
+    /// A forest dungeon.
+    ///
+    /// Should be lucious, overgrown, and *very* green.
     Forest,
 }
 
+// TODO: Make this an instance method on [`Point`].
 fn distance(from: Point, to: Point) -> f64 {
     (((from.row.get().as_unbounded() - to.row.get().as_unbounded()).pow(2)
         + (from.column.get().as_unbounded() - to.column.get().as_unbounded()).pow(2)) as f64)
@@ -191,7 +220,7 @@ fn distance(from: Point, to: Point) -> f64 {
 
 #[cfg(test)]
 mod test_dungeon {
-    use std::{convert::TryInto, fs, mem};
+    use std::{convert::TryInto, fs};
 
     use super::*;
 
