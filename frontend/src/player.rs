@@ -37,7 +37,7 @@ impl PlayerDirection {
     ///            v
     ///            π
     /// ```
-    pub fn to_rotation(&self) -> Quat {
+    pub fn to_rotation(self) -> Quat {
         Quat::from_rotation_z(match self {
             PlayerDirection::Up => 0.0,
             PlayerDirection::Right => 3.0 * PI / 2.0,

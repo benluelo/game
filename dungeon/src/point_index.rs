@@ -5,7 +5,7 @@ use super::Point;
 /// A 1-dimensional type representing a 2-dimensional grid, indexable by a [`Point`].
 ///
 /// This trait is implemented for [`Vec<T>`] and [`std::slice`]s, but any indexable
-/// type would be able to implement this as well.
+/// type could be able to implement this as well.
 ///
 /// This trait assumes that the underlying implementation uses **row-major** order,
 /// and as such the width of the 2D grid must be provided.
@@ -110,7 +110,11 @@ use super::Point;
 ///     &1
 /// ));
 /// ```
-pub trait PointIndex<T> {
+pub trait PointIndex {
+    /// The type returned by this trait's methods.
+    ///
+    /// Will most often be the type that the implementating collection is
+    /// generic over.
     type Output;
 
     /// Returns a reference to the item at that point.
@@ -128,7 +132,7 @@ pub trait PointIndex<T> {
     ) -> &mut Self::Output;
 }
 
-impl<T> PointIndex<T> for Vec<T> {
+impl<T> PointIndex for Vec<T> {
     type Output = T;
 
     fn at<const L: i32, const H: i32>(
@@ -150,7 +154,7 @@ impl<T> PointIndex<T> for Vec<T> {
     }
 }
 
-impl<T> PointIndex<T> for [T] {
+impl<T> PointIndex for [T] {
     type Output = T;
 
     fn at<const L: i32, const H: i32>(

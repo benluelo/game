@@ -1,22 +1,17 @@
 pub mod constants;
+pub mod key_press_handling;
+pub mod player;
 
-use bevy::ecs::schedule::ReportExecutionOrderAmbiguities;
-use constants::TILE_Z_INDEX;
-use key_press_handling::KeyPressTime;
-use num_traits::identities::Zero;
-use player::PlayerState;
-use std::f32::consts::PI;
-use std::ops::Index;
-use std::{convert::TryInto, num::NonZeroU16};
-use utils::point_to_transform;
+use bevy::{ecs::schedule::ReportExecutionOrderAmbiguities, prelude::*, render::camera::Camera};
+use dungeon::{Dungeon, DungeonTile, DungeonType, Point};
+use std::{convert::TryInto, num::NonZeroU16, ops::Index};
 
-use bevy::utils::{StableHashMap, StableHashSet};
-use bevy::{prelude::*, render::camera::Camera};
-use dungeon::{Dungeon, DungeonTile, DungeonType, Floor, Point, PointIndex};
-
-use crate::constants::{PLAYER_MOVEMENT_DELAY_SECONDS, PLAYER_MOVING_TIME_SECONDS};
-use crate::player::{Player, PlayerDirection};
-use crate::utils::{player_sprite_bundle, tile_sprite_bundle};
+use crate::{
+    constants::{PLAYER_MOVEMENT_DELAY_SECONDS, PLAYER_MOVING_TIME_SECONDS, TILE_Z_INDEX},
+    key_press_handling::KeyPressTime,
+    player::{Player, PlayerDirection, PlayerState},
+    utils::{player_sprite_bundle, point_to_transform},
+};
 
 fn main() {
     App::build()
@@ -98,9 +93,9 @@ fn setup(
 }
 
 pub struct Tile {
+    #[allow(dead_code)]
     tile_type: DungeonTile,
 }
-pub mod player;
 
 pub struct Materials {
     empty_material: Handle<ColorMaterial>,
@@ -128,8 +123,6 @@ impl Index<DungeonTile> for Materials {
         }
     }
 }
-
-pub mod key_press_handling;
 
 /// The internal position of something in the world; where in the world it can be considered to be.
 pub struct Position(Point);
@@ -206,6 +199,7 @@ fn smooth_player_movement(
 /// makes the camera follow the player.
 /// TODO: when the player is in corners, make the camera stay in the same spot.
 /// NOTE: this will first require fixing how the tiles are drawn
+#[allow(clippy::type_complexity)]
 fn camera_player_tracking(
     mut set: QuerySet<(
         Query<&Transform, With<Player>>,

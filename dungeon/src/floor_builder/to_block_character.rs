@@ -2,6 +2,7 @@ use bounded_int::BoundedInt;
 
 use super::{MAX_FLOOR_SIZE, MIN_FLOOR_SIZE};
 
+#[allow(dead_code)]
 pub(crate) fn print_vec_2d<T: ToBlockDrawingCharacter>(
     vec: Vec<T>,
     width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,

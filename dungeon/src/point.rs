@@ -20,14 +20,21 @@ pub struct Point {
     pub row: Row,
 }
 
+/// Wrapper type around a [`BoundedInt`] that represents the row position of a [`Point`].
+/// Note that the [`BoundedInt`] is bound on the maximum and minimum that a point can be,
+/// not the floor size itself.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Row(pub(super) BoundedInt<0, { MAX_FLOOR_SIZE }>);
 
+/// Wrapper type around a [`BoundedInt`] that represents the column position of a [`Point`].
+/// Note that the [`BoundedInt`] is bound on the maximum and minimum that a point can be,
+/// not the floor size itself.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Column(pub(super) BoundedInt<0, { MAX_FLOOR_SIZE }>);
 
-// TODO: use methods on row and col
 impl Point {
+    /// Adds the provided value to the row, saturating on the numeric bounds instead of
+    /// overflowing or panicking.
     pub fn saturating_add_row(self, n: i32) -> Self {
         Self {
             row: self.row.saturating_add(n),
@@ -35,12 +42,17 @@ impl Point {
         }
     }
 
+    /// Subtracts the provided value from the row, saturating on the numeric bounds instead of
+    /// overflowing or panicking.
     pub fn saturating_sub_row(self, n: i32) -> Self {
         Self {
             row: Row(self.row.0.saturating_sub(n)),
             column: self.column,
         }
     }
+
+    /// Adds the provided value to the column, saturating on the numeric bounds instead of
+    /// overflowing or panicking.
     pub fn saturating_add_column(self, n: i32) -> Self {
         Self {
             column: Column(self.column.0.saturating_add(n)),
@@ -48,6 +60,8 @@ impl Point {
         }
     }
 
+    /// Subtracts the provided value from the column, saturating on the numeric bounds instead of
+    /// overflowing or panicking.
     pub fn saturating_sub_column(self, n: i32) -> Self {
         Self {
             column: Column(self.column.0.saturating_sub(n)),
@@ -55,6 +69,7 @@ impl Point {
         }
     }
 
+    /// Adds the provided value to the row, returning the error if it would overflow.
     pub fn add_row(self, n: u16) -> Result<Self, BoundedIntOverflow> {
         Ok(Self {
             row: Row(self.row.0.add(n)?),
@@ -62,12 +77,14 @@ impl Point {
         })
     }
 
+    /// Subtracts the provided value from the row, returning the error if it would overflow.
     pub fn sub_row(self, n: u16) -> Result<Self, BoundedIntUnderflow> {
         Ok(Self {
             row: Row(self.row.0.sub(n)?),
             column: self.column,
         })
     }
+    /// Adds the provided value to the column, returning the error if it would overflow.
     pub fn add_column(self, n: u16) -> Result<Self, BoundedIntOverflow> {
         Ok(Self {
             column: Column(self.column.0.add(n)?),
@@ -75,6 +92,7 @@ impl Point {
         })
     }
 
+    /// Subtracts the provided value from the column, returning the error if it would overflow.
     pub fn sub_column(self, n: u16) -> Result<Self, BoundedIntUnderflow> {
         Ok(Self {
             column: Column(self.column.0.sub(n)?),
@@ -123,31 +141,29 @@ impl Sub for Point {
     }
 }
 
-impl_row_col!(Row);
-impl_row_col!(Column);
-
-use crate::impl_row_col;
-
-#[macro_export]
 macro_rules! impl_row_col {
     ($t:ty) => {
         impl $t {
+            /// Creates a new [`$t`] with the provided value.
             pub fn new(
                 value: ::bounded_int::BoundedInt<0, { crate::floor_builder::MAX_FLOOR_SIZE }>,
             ) -> Self {
                 Self(value)
             }
 
+            /// Returns the inner value.
             pub fn get(
                 &self,
             ) -> ::bounded_int::BoundedInt<0, { crate::floor_builder::MAX_FLOOR_SIZE }> {
                 self.0
             }
 
+            /// Performs addition, saturating on the bounds instead of overflowing or panicking.
             pub fn saturating_add(self, n: i32) -> Self {
                 Self(self.0.saturating_add(n))
             }
 
+            /// Performs subtraction, saturating on the bounds instead of overflowing or panicking.
             pub fn saturating_sub(self, n: i32) -> Self {
                 Self(self.0.saturating_sub(n))
             }
@@ -186,3 +202,6 @@ macro_rules! impl_row_col {
         }
     };
 }
+
+impl_row_col!(Row);
+impl_row_col!(Column);
