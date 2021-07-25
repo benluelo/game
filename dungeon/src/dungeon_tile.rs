@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::floor_builder::to_block_character::ToBlockDrawingCharacter;
+use crate::floor_builder::to_block_character::ToAsciiCharacter;
 
 /// The various things a tile can be in a dungeon floor.
 ///
@@ -124,17 +124,17 @@ impl Default for DungeonTile {
     }
 }
 
-impl ToBlockDrawingCharacter for DungeonTile {
-    fn to_block(&self) -> &'static str {
+impl ToAsciiCharacter for DungeonTile {
+    fn to_ascii_chars(&self) -> [char; 2] {
         #[allow(clippy::non_ascii_literal)]
         match self {
-            DungeonTile::Empty => "  ",
-            DungeonTile::Wall => "██",
-            DungeonTile::SecretDoor { .. } => "SD",
-            DungeonTile::SecretPassage => "<>",
-            DungeonTile::TreasureChest { .. } => "TC",
-            DungeonTile::Entrance => "EN",
-            DungeonTile::Exit => "EX",
+            DungeonTile::Empty => [' ', ' '],
+            DungeonTile::Wall => ['█', '█'],
+            DungeonTile::SecretDoor { .. } => ['S', 'D'],
+            DungeonTile::SecretPassage => ['<', '>'],
+            DungeonTile::TreasureChest { .. } => ['T', 'C'],
+            DungeonTile::Entrance => ['E', 'N'],
+            DungeonTile::Exit => ['E', 'X'],
         }
     }
 }

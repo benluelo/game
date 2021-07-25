@@ -2,7 +2,7 @@ use std::{collections::HashSet, iter};
 
 use crate::{border::BorderId, Point};
 
-/// A connection between two borders, with
+/// A connection between two borders with a path drawn between them.
 #[derive(Debug, Clone)]
 pub(crate) struct ConnectionPath {
     /// The [`BorderId`] of the [`Border`] that the path starts at.

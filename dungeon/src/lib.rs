@@ -33,9 +33,24 @@ pub mod dungeon_tile;
 /// See the type-level documentation for more information.
 pub mod point_index;
 
+/// A border of points around a cave in a floor.
+///
+/// See the type-level documentation for more information.
 mod border;
+
+/// A connection between two borders with a path drawn between them.
+///
+/// See the type-level documentation for more information.
 mod connection_path;
+
+/// Builder struct for a [`Floor`].
+///
+/// See the type-level documentation for more information.
 mod floor_builder;
+
+/// A point somewhere in a [`Floor`].
+///
+/// See the type-level documentation for more information.
 mod point;
 
 pub use point::Point;
@@ -241,6 +256,7 @@ pub enum DungeonType {
     Forest,
 }
 
+/// Returns the distance between two [`Point`]s.
 // TODO: Make this an instance method on [`Point`].
 fn distance(from: Point, to: Point) -> f64 {
     (((from.row.get().as_unbounded() - to.row.get().as_unbounded()).pow(2)

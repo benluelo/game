@@ -1,7 +1,7 @@
 #[allow(clippy::wildcard_imports)]
 use crate::{
     dungeon_tile::DungeonTile,
-    floor_builder::{floor_builder_state::*, to_block_character::ToBlockDrawingCharacter},
+    floor_builder::{floor_builder_state::*, to_block_character::ToAsciiCharacter},
     point_index::PointIndex,
     Column, FloorId, Point, Row,
 };
@@ -15,6 +15,10 @@ use std::{borrow::Cow, convert::TryInto, fmt::Debug, vec};
 use self::floor_builder_state::{blank::Blank, smoothed::Smoothed};
 
 mod floor_builder_state;
+
+/// Represents a type that can be 'pretty-printed' using ascii characters.
+///
+/// See the type-level documentation for more information.
 pub(crate) mod to_block_character;
 
 /// The minimum dimensions a [`Floor`] can have.
@@ -25,7 +29,7 @@ pub const MAX_FLOOR_SIZE: i32 = 200;
 /// generation.
 const RANDOM_FILL_WALL_PERCENT_CHANCE: u8 = 52;
 
-/// Builder struct for [`Floor`].
+/// Builder struct for a [`Floor`].
 ///
 /// See <http://roguebasin.roguelikedevelopment.org/index.php?title=Cellular_Automata_Method_for_Generating_Random_Cave-Like_Levels>
 #[derive(Debug)]
@@ -311,11 +315,9 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
         self.map
             // .par_iter()
             .chunks(self.width.as_unbounded() as usize)
-            .zip(0..)
             .map(|i| {
-                i.0.iter()
-                    .zip(0..)
-                    .map(|j| j.0.to_block())
+                i.iter()
+                    .flat_map(ToAsciiCharacter::to_ascii_chars)
                     .collect::<String>()
             })
             .collect::<Vec<_>>()
@@ -325,7 +327,7 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
 
 #[cfg(test)]
 mod test_super {
-    use crate::floor_builder::to_block_character::print_vec_2d;
+    use crate::floor_builder::to_block_character::_print_vec_2d;
 
     use super::*;
 
@@ -374,7 +376,7 @@ mod test_super {
             }
         }
 
-        println!("{}", print_vec_2d(&new_vec, width));
+        println!("{}", _print_vec_2d(&new_vec, width));
     }
     #[test]
     fn test_get_legal_neighbors() {
@@ -395,6 +397,6 @@ mod test_super {
             }
         }
 
-        println!("{}", print_vec_2d(&new_vec, width));
+        println!("{}", _print_vec_2d(&new_vec, width));
     }
 }
