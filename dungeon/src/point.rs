@@ -1,7 +1,7 @@
 use std::ops::{Add, Sub};
 
 use bounded_int::{
-    ops::{BoundedIntOverflow, BoundedIntUnderflow},
+    ops::{BoundedIntOverflowError, BoundedIntUnderflowError},
     BoundedInt,
 };
 
@@ -77,7 +77,7 @@ impl Point {
     ///
     /// # Errors
     /// This function will return an error if the [`Row`] would overflow its bounds.
-    pub fn add_row(self, n: u16) -> Result<Self, BoundedIntOverflow> {
+    pub fn add_row(self, n: u16) -> Result<Self, BoundedIntOverflowError> {
         Ok(Self {
             row: Row(self.row.0.add(n)?),
             column: self.column,
@@ -88,7 +88,7 @@ impl Point {
     ///
     /// # Errors
     /// This function will return an error if the [`Row`] would overflow its bounds.
-    pub fn sub_row(self, n: u16) -> Result<Self, BoundedIntUnderflow> {
+    pub fn sub_row(self, n: u16) -> Result<Self, BoundedIntUnderflowError> {
         Ok(Self {
             row: Row(self.row.0.sub(n)?),
             column: self.column,
@@ -99,7 +99,7 @@ impl Point {
     ///
     /// # Errors
     /// This function will return an error if the [`Column`] would overflow its bounds.
-    pub fn add_column(self, n: u16) -> Result<Self, BoundedIntOverflow> {
+    pub fn add_column(self, n: u16) -> Result<Self, BoundedIntOverflowError> {
         Ok(Self {
             column: Column(self.column.0.add(n)?),
             row: self.row,
@@ -110,7 +110,7 @@ impl Point {
     ///
     /// # Errors
     /// This function will return an error if the [`Column`] would overflow its bounds.
-    pub fn sub_column(self, n: u16) -> Result<Self, BoundedIntUnderflow> {
+    pub fn sub_column(self, n: u16) -> Result<Self, BoundedIntUnderflowError> {
         Ok(Self {
             column: Column(self.column.0.sub(n)?),
             row: self.row,
@@ -191,7 +191,7 @@ macro_rules! impl_row_col {
         }
 
         impl ::std::ops::Add<u16> for $t {
-            type Output = ::std::result::Result<Self, ::bounded_int::ops::BoundedIntOverflow>;
+            type Output = ::std::result::Result<Self, ::bounded_int::ops::BoundedIntOverflowError>;
 
             fn add(self, rhs: u16) -> Self::Output {
                 Ok(Self((self.0.add(rhs))?))
@@ -199,7 +199,7 @@ macro_rules! impl_row_col {
         }
 
         impl ::std::ops::Sub<u16> for $t {
-            type Output = ::std::result::Result<Self, ::bounded_int::ops::BoundedIntUnderflow>;
+            type Output = ::std::result::Result<Self, ::bounded_int::ops::BoundedIntUnderflowError>;
 
             fn sub(self, rhs: u16) -> Self::Output {
                 Ok(Self((self.0.sub(rhs))?))
@@ -207,7 +207,7 @@ macro_rules! impl_row_col {
         }
 
         impl ::std::ops::Add for $t {
-            type Output = ::std::result::Result<Self, ::bounded_int::ops::BoundedIntOverflow>;
+            type Output = ::std::result::Result<Self, ::bounded_int::ops::BoundedIntOverflowError>;
 
             fn add(self, rhs: Self) -> Self::Output {
                 Ok(Self((self.0.add(rhs.0))?))
@@ -215,7 +215,7 @@ macro_rules! impl_row_col {
         }
 
         impl ::std::ops::Sub for $t {
-            type Output = ::std::result::Result<Self, ::bounded_int::ops::BoundedIntUnderflow>;
+            type Output = ::std::result::Result<Self, ::bounded_int::ops::BoundedIntUnderflowError>;
 
             fn sub(self, rhs: Self) -> Self::Output {
                 Ok(Self((self.0.sub(rhs.0))?))

@@ -1,17 +1,19 @@
 use crate::BoundedInt;
 use std::ops::{Add, Sub};
 
+/// Error returned when an operation would make the [`BoundedInt]` overflow it's bounds.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct BoundedIntOverflow {
+pub struct BoundedIntOverflowError {
+    /// How much the bounds were overflowed by.
     overflowed_by: i32,
 }
 
 impl<const LOW: i32, const HIGH: i32> Add for BoundedInt<{ LOW }, { HIGH }> {
-    type Output = Result<Self, BoundedIntOverflow>;
+    type Output = Result<Self, BoundedIntOverflowError>;
 
     fn add(self, rhs: Self) -> Self::Output {
         if self.0 + rhs.0 > HIGH {
-            Err(BoundedIntOverflow {
+            Err(BoundedIntOverflowError {
                 overflowed_by: (self.0 + rhs.0) - HIGH,
             })
         } else {
@@ -21,12 +23,12 @@ impl<const LOW: i32, const HIGH: i32> Add for BoundedInt<{ LOW }, { HIGH }> {
 }
 
 impl<const LOW: i32, const HIGH: i32> Add<u16> for BoundedInt<{ LOW }, { HIGH }> {
-    type Output = Result<Self, BoundedIntOverflow>;
+    type Output = Result<Self, BoundedIntOverflowError>;
 
     fn add(self, rhs: u16) -> Self::Output {
         let rhs = rhs as i32;
         if self.0 + rhs > HIGH {
-            Err(BoundedIntOverflow {
+            Err(BoundedIntOverflowError {
                 overflowed_by: (self.0 + rhs) - HIGH,
             })
         } else {
@@ -35,17 +37,19 @@ impl<const LOW: i32, const HIGH: i32> Add<u16> for BoundedInt<{ LOW }, { HIGH }>
     }
 }
 
+/// Error returned when an operation would make the [`BoundedInt]` underflow it's bounds.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct BoundedIntUnderflow {
+pub struct BoundedIntUnderflowError {
+    /// How much the bounds were underflowed by.
     underflowed_by: i32,
 }
 
 impl<const LOW: i32, const HIGH: i32> Sub for BoundedInt<{ LOW }, { HIGH }> {
-    type Output = Result<Self, BoundedIntUnderflow>;
+    type Output = Result<Self, BoundedIntUnderflowError>;
 
     fn sub(self, rhs: Self) -> Self::Output {
         if self.0 - rhs.0 < LOW {
-            Err(BoundedIntUnderflow {
+            Err(BoundedIntUnderflowError {
                 underflowed_by: (self.0 - rhs.0) - HIGH,
             })
         } else {
@@ -55,12 +59,12 @@ impl<const LOW: i32, const HIGH: i32> Sub for BoundedInt<{ LOW }, { HIGH }> {
 }
 
 impl<const LOW: i32, const HIGH: i32> Sub<u16> for BoundedInt<{ LOW }, { HIGH }> {
-    type Output = Result<Self, BoundedIntUnderflow>;
+    type Output = Result<Self, BoundedIntUnderflowError>;
 
     fn sub(self, rhs: u16) -> Self::Output {
         let rhs = rhs as i32;
         if self.0 - rhs < LOW {
-            Err(BoundedIntUnderflow {
+            Err(BoundedIntUnderflowError {
                 underflowed_by: (self.0 - rhs) - HIGH,
             })
         } else {

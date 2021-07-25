@@ -1,17 +1,37 @@
+#![warn(missing_docs, clippy::missing_docs_in_private_items)]
+
+//! Leverages const generics to enforce compile time bounds on integers.
+//! 
+//! **Note:** due to current limitations in Rust, the [`BoundedInt`] type uses
+//! an [`i32`] behind the scenes. This could be wasteful if you limit the bounds
+//! to smaller than, say, an [`i16`], or may not be enough if you need a number
+//! larger than an [`i32`] can hold.
+
 use crate::iter::{BoundedIntRange, BoundedIntRangeInclusive};
-use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::convert::{TryFrom, TryInto};
 
+/// Contains the [`Iterator`] implementations for the range types.
 pub mod iter;
+/// Contains the various [`std::ops`] traits.
 pub mod ops;
 
+/// An integer bound between two points, inclusive on both ends.
+///
+/// TODO: Examples
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct BoundedInt</* T: Integer,  */ const LOW: i32, const HIGH: i32>(pub(crate) i32);
 
+/// Error returned when trying to convert an [`i32`] to a [`BoundedInt`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum BoundedIntError {
+    /// The number was too high for the bounds.
+    ///
+    /// Contains the value that was too high.
     TooHigh(i32),
+    /// The number was too low for the bounds.
+    ///
+    /// Contains the value that was too low.
     TooLow(i32),
 }
 
@@ -22,6 +42,7 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     /// The upper bounds of the `BoundedInt`, inclusive.
     pub const HIGH: i32 = HIGH;
 
+    /// Returns the input as a [`BoundedInt`], clamped at the bounds.
     #[must_use = "returned value will be immediately dropped if not used"]
     pub fn new_clamped(n: i32) -> Self {
         assert!(
@@ -49,14 +70,11 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
         n.try_into()
     }
 
+    /// Returns the inner value of the [`BoundedInt`].
     #[inline]
     #[must_use = "`as_unbounded` does not mutate the original value"]
     pub const fn as_unbounded(self) -> i32 {
         self.0
-    }
-
-    pub fn random(rng: &mut impl Rng) -> Self {
-        BoundedInt(rng.gen_range(LOW..=HIGH))
     }
 
     /// Returns a [`BoundedIntRange`] from `self` to `to`.
@@ -232,11 +250,6 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
             LOW
         );
         BoundedInt(self.0)
-    }
-
-    #[must_use]
-    pub fn new_unwrapped(from: i32) -> BoundedInt<{ LOW }, { HIGH }> {
-        Self::new(from).unwrap()
     }
 
     /// Expands the bounds of the `BoundedInt` to `LOWER` and `HIGHER`.
