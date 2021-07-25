@@ -77,7 +77,7 @@ impl FloorBuilder<Smoothed> {
             .iter()
             .enumerate()
             .map(|(id, hashset)| Border {
-                id: BorderId(id),
+                id: BorderId::new(id),
                 points: hashset.clone(),
             })
             .collect::<Vec<_>>();

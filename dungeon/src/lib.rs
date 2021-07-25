@@ -1,5 +1,6 @@
 #![warn(missing_docs)]
 #![allow(clippy::needless_continue)]
+#![warn(missing_docs, clippy::missing_docs_in_private_items)]
 
 //! Dungeon creation. Creates 2d cave-like dungeons using cellular automata (among other techniques).
 //!
