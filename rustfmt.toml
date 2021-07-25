@@ -1,4 +1,7 @@
-# Please format all code with the default rustfmt settings.
+# Please format all code with these rustfmt settings.
+# Run this command from the workspace root before comitting:
+# cargo +nightly fmt --all
+
 normalize_comments = true
 imports_granularity = "Crate"
 wrap_comments = true
