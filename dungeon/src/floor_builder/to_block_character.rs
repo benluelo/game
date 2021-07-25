@@ -2,8 +2,8 @@ use bounded_int::BoundedInt;
 
 use super::{MAX_FLOOR_SIZE, MIN_FLOOR_SIZE};
 
-/// Returns the supplied [`Vec<T>`] as a [`String`], using the
-/// [`ToAsciiCharacter`] implementation for `T` to do so.
+/// Returns the supplied [`Vec<T>`] as a [`String`], using
+/// `T`'s [`ToAsciiCharacter`] implementation.
 #[allow(dead_code)]
 pub(crate) fn _print_vec_2d<T: ToAsciiCharacter>(
     vec: &[T],
