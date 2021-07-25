@@ -28,7 +28,7 @@ impl FloorBuilder<Drawable> {
     /// Note that the first and second arguments are not mutually exclisive.
     pub(in crate::floor_builder) fn draw(
         mut self,
-        // TODO: Make a more explicit type for the first tow arguments (`enum PositionInPath`
+        // TODO: Make a more explicit type for the first two arguments (`enum PositionInPath`
         // perhaps?)
         draw_with: fn(
             // is_first
