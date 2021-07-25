@@ -1,3 +1,4 @@
+#[allow(clippy::needless_pass_by_value)]
 pub mod constants;
 pub mod key_press_handling;
 pub mod player;

@@ -12,21 +12,19 @@ pub(crate) struct ConnectionPath {
 #[allow(dead_code)]
 impl ConnectionPath {
     pub fn length(&self) -> usize {
-        use ConnectionPathLength::*;
         match &self.path {
-            Length1 { .. } => 1,
-            Length2 { .. } => 2,
+            ConnectionPathLength::Length1 { .. } => 1,
+            ConnectionPathLength::Length2 { .. } => 2,
             // add 2 to include the start and end points
-            Length3Plus { points, .. } => points.len() + 2,
+            ConnectionPathLength::Length3Plus { points, .. } => points.len() + 2,
         }
     }
 
     pub fn iter(&self) -> impl Iterator<Item = Point> {
-        use ConnectionPathLength::*;
         match &self.path {
-            Length1 { point } => vec![*point],
-            Length2 { start, end } => vec![*start, *end],
-            Length3Plus { points, start, end } => iter::once(*start)
+            ConnectionPathLength::Length1 { point } => vec![*point],
+            ConnectionPathLength::Length2 { start, end } => vec![*start, *end],
+            ConnectionPathLength::Length3Plus { points, start, end } => iter::once(*start)
                 .chain(points.clone())
                 .chain(iter::once(*end))
                 .collect(),

@@ -1,9 +1,12 @@
+#[allow(clippy::wildcard_imports)]
 use crate::{
-    dungeon_tile::DungeonTile, floor_builder::floor_builder_state::*, point_index::PointIndex,
+    dungeon_tile::DungeonTile,
+    floor_builder::{floor_builder_state::*, to_block_character::ToBlockDrawingCharacter},
+    point_index::PointIndex,
     Column, FloorId, Point, Row,
 };
-use ansi_term::ANSIStrings;
 use bounded_int::BoundedInt;
+use gif::Frame;
 use itertools::Itertools;
 use pathfinding::prelude::dijkstra;
 
@@ -12,14 +15,15 @@ use std::{borrow::Cow, convert::TryInto, fmt::Debug, vec};
 use self::floor_builder_state::{blank::Blank, smoothed::Smoothed};
 
 mod floor_builder_state;
-mod to_block_character;
+pub(crate) mod to_block_character;
 
 pub const MIN_FLOOR_SIZE: i32 = 10;
 pub const MAX_FLOOR_SIZE: i32 = 200;
-const RANDOM_FILL_WALL_CHANCE: u8 = 52;
+const RANDOM_FILL_WALL_PERCENT_CHANCE: u8 = 52;
 
-/// Represents a floor of a dungeon
-/// See http://roguebasin.roguelikedevelopment.org/index.php?title=Cellular_Automata_Method_for_Generating_Random_Cave-Like_Levels
+/// Builder struct for [`Floor`].
+///
+/// See <http://roguebasin.roguelikedevelopment.org/index.php?title=Cellular_Automata_Method_for_Generating_Random_Cave-Like_Levels>
 #[derive(Debug)]
 pub struct FloorBuilder<S: FloorBuilderState> {
     pub(crate) width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
@@ -64,12 +68,8 @@ impl<S: Smoothable> FloorBuilder<S> {
         create_new_walls: fn(usize) -> bool,
     ) -> FloorBuilder<Smoothed> {
         for r in 0..repeat {
-            for column in self.width.expand_lower().range_from(&0.try_into().unwrap()) {
-                for row in self
-                    .height
-                    .expand_lower()
-                    .range_from(&0.try_into().unwrap())
-                {
+            for column in self.width.expand_lower().range_from(0.try_into().unwrap()) {
+                for row in self.height.expand_lower().range_from(0.try_into().unwrap()) {
                     let point = Point {
                         column: Column::new(column),
                         row: Row::new(row),
@@ -97,12 +97,12 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
     fn frame_from_current_state(&mut self, delay: u16) {
         if let Some(ref mut frames) = self.frames {
             // println!("adding frame");
-            frames.push(gif::Frame {
-                width: self.width.as_unbounded() as u16,
-                height: self.height.as_unbounded() as u16,
+            frames.push(Frame {
+                width: self.width.as_unbounded().try_into().unwrap(),
+                height: self.height.as_unbounded().try_into().unwrap(),
                 buffer: Cow::Owned(self.map.iter().map(DungeonTile::as_u8).collect::<Vec<_>>()),
                 delay,
-                ..Default::default()
+                ..Frame::default()
             });
         }
     }
@@ -118,13 +118,13 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
             width,
             height,
             map: vec![
-                Default::default();
+                DungeonTile::default();
                 (width.as_unbounded() * height.as_unbounded())
                     .try_into()
                     .unwrap()
             ],
             noise_map: vec![
-                Default::default();
+                u16::default();
                 (width.as_unbounded() * height.as_unbounded())
                     .try_into()
                     .unwrap()
@@ -138,16 +138,13 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
 
     /// will only return wall or empty
     fn place_wall_logic(&self, point: Point, create_new_walls: bool) -> DungeonTile {
+        use DungeonTile::{Empty, Wall};
+
         let what_the_tile_is_currently = self.map.at(point, self.width);
 
-        if !matches!(
-            what_the_tile_is_currently,
-            DungeonTile::Empty | DungeonTile::Wall
-        ) {
+        if !matches!(what_the_tile_is_currently, Empty | Wall) {
             return *what_the_tile_is_currently;
         }
-
-        use DungeonTile::{Empty, Wall};
 
         if self.is_out_of_bounds(point) {
             return Wall;
@@ -182,8 +179,8 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
 
         let mut counter = 0;
 
-        for i_y in start_y.range_to_inclusive(&end_y) {
-            for i_x in start_x.range_to_inclusive(&end_x) {
+        for i_y in start_y.range_to_inclusive(end_y) {
+            for i_x in start_x.range_to_inclusive(end_x) {
                 if !(i_x == point.row.get() && i_y == point.column.get())
                     && self.is_wall(Point {
                         row: Row::new(i_x),
@@ -258,31 +255,17 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
             .filter(move |&p| !self.is_out_of_bounds(p) && p != point)
     }
 
-    pub(crate) fn _pretty(&self, extra_points: Vec<Point>, extra_points2: Vec<Point>) -> String {
+    #[allow(unused_variables)]
+    pub(crate) fn _pretty(&self, extra_points: &[Point], extra_points2: &[Point]) -> String {
         self.map
             // .par_iter()
             .chunks(self.width.as_unbounded() as usize)
             .zip(0..)
             .map(|i| {
-                ANSIStrings(
-                    &i.0.iter()
-                        .zip(0..)
-                        .map(|j| {
-                            j.0._print(
-                                extra_points2.contains(&Point {
-                                    row: Row::new(i.1.try_into().unwrap()),
-                                    column: Column::new(j.1.try_into().unwrap()),
-                                }),
-                                extra_points.contains(&Point {
-                                    row: Row::new(i.1.try_into().unwrap()),
-                                    column: Column::new(j.1.try_into().unwrap()),
-                                }),
-                                // true, true,
-                            )
-                        })
-                        .collect::<Vec<_>>(),
-                )
-                .to_string()
+                i.0.iter()
+                    .zip(0..)
+                    .map(|j| j.0.to_block())
+                    .collect::<String>()
             })
             .collect::<Vec<_>>()
             .join("\n")
@@ -316,7 +299,7 @@ mod test_super {
             100.try_into().unwrap(),
             false,
         );
-        let formatted = random_filled_floor._pretty(vec![], vec![]);
+        let formatted = random_filled_floor._pretty(&[], &[]);
 
         println!("{}", &formatted)
     }
@@ -330,8 +313,8 @@ mod test_super {
 
         let mut new_vec = vec![false; (width.as_unbounded() * height.as_unbounded()) as usize];
 
-        for column in width.expand_lower().range_from(&0.try_into().unwrap()) {
-            for row in height.expand_lower().range_from(&0.try_into().unwrap()) {
+        for column in width.expand_lower().range_from(0.try_into().unwrap()) {
+            for row in height.expand_lower().range_from(0.try_into().unwrap()) {
                 let point = Point {
                     column: Column::new(column),
                     row: Row::new(row),
@@ -340,7 +323,7 @@ mod test_super {
             }
         }
 
-        println!("{}", print_vec_2d(new_vec, width));
+        println!("{}", print_vec_2d(&new_vec, width));
     }
     #[test]
     fn test_get_legal_neighbors() {
@@ -351,8 +334,8 @@ mod test_super {
 
         let mut new_vec = vec![false; (width.as_unbounded() * height.as_unbounded()) as usize];
 
-        for column in width.expand_lower().range_from(&0.try_into().unwrap()) {
-            for row in height.expand_lower().range_from(&0.try_into().unwrap()) {
+        for column in width.expand_lower().range_from(0.try_into().unwrap()) {
+            for row in height.expand_lower().range_from(0.try_into().unwrap()) {
                 let point = Point {
                     column: Column::new(column),
                     row: Row::new(row),
@@ -361,6 +344,6 @@ mod test_super {
             }
         }
 
-        println!("{}", print_vec_2d(new_vec, width));
+        println!("{}", print_vec_2d(&new_vec, width));
     }
 }

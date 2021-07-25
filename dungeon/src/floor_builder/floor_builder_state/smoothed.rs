@@ -29,12 +29,8 @@ impl FloorBuilder<Smoothed> {
         let mut borders = vec![];
 
         // loop through the entire map
-        for column in self.width.expand_lower().range_from(&0.try_into().unwrap()) {
-            'rows: for row in self
-                .height
-                .expand_lower()
-                .range_from(&0.try_into().unwrap())
-            {
+        for column in self.width.expand_lower().range_from(0.try_into().unwrap()) {
+            'rows: for row in self.height.expand_lower().range_from(0.try_into().unwrap()) {
                 let point = Point {
                     column: Column::new(column),
                     row: Row::new(row),

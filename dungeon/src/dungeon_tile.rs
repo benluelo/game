@@ -1,5 +1,6 @@
-use ansi_term::{ANSIString, Colour::Green, Style};
 use serde::{Deserialize, Serialize};
+
+use crate::floor_builder::to_block_character::ToBlockDrawingCharacter;
 
 /// The various things a tile can be in a dungeon floor.
 ///
@@ -52,7 +53,9 @@ impl DungeonTile {
     ///
     /// This operation is lossy; any variant with attached information
     /// does not have it's information encoded in it's u8 value.
-    pub fn as_u8(&self) -> u8 {
+    #[must_use]
+    #[allow(clippy::trivially_copy_pass_by_ref)] // so it can be passed directly to Iterator::map
+    pub const fn as_u8(&self) -> u8 {
         match self {
             DungeonTile::Empty => 0,
             DungeonTile::Wall => 1,
@@ -64,39 +67,52 @@ impl DungeonTile {
         }
     }
 
-    /// Returns `true` if the dungeon_tile is [`Empty`].
-    pub fn is_empty(&self) -> bool {
+    /// Returns `true` if `self` is [`DungeonTile::Empty`].
+    #[must_use]
+    pub const fn is_empty(self) -> bool {
         matches!(self, Self::Empty)
     }
 
-    /// Returns `true` if the dungeon_tile is [`Wall`].
-    pub fn is_wall(&self) -> bool {
+    /// Returns `true` if `self` is [`DungeonTile::Wall`].
+    #[must_use]
+    pub const fn is_wall(self) -> bool {
         matches!(self, Self::Wall)
     }
 
-    /// Returns `true` if the dungeon_tile is [`SecretDoor`].
-    pub fn is_secret_door(&self) -> bool {
+    /// Returns `true` if `self` is [`DungeonTile::SecretDoor`].
+    #[must_use]
+    pub const fn is_secret_door(self) -> bool {
         matches!(self, Self::SecretDoor { .. })
     }
 
-    /// Returns `true` if the dungeon_tile is [`SecretPassage`].
-    pub fn is_secret_passage(&self) -> bool {
+    /// Returns `true` if `self` is [`DungeonTile::SecretPassage`].
+    #[must_use]
+    pub const fn is_secret_passage(self) -> bool {
         matches!(self, Self::SecretPassage)
     }
 
-    /// Returns `true` if the dungeon_tile is [`TreasureChest`].
-    pub fn is_treasure_chest(&self) -> bool {
+    /// Returns `true` if `self` is [`DungeonTile::TreasureChest`].
+    #[must_use]
+    pub const fn is_treasure_chest(self) -> bool {
         matches!(self, Self::TreasureChest { .. })
     }
 
-    /// Returns `true` if the dungeon_tile is [`Entrance`].
-    pub fn is_entrance(&self) -> bool {
+    /// Returns `true` if `self` is [`DungeonTile::Entrance`].
+    #[must_use]
+    pub const fn is_entrance(self) -> bool {
         matches!(self, Self::Entrance)
     }
 
-    /// Returns `true` if the dungeon_tile is [`Exit`].
-    pub fn is_exit(&self) -> bool {
+    /// Returns `true` if `self` is [`DungeonTile::Exit`].
+    #[must_use]
+    pub const fn is_exit(self) -> bool {
         matches!(self, Self::Exit)
+    }
+
+    /// Returns whether or not the tile can be traversed by the player.
+    #[must_use]
+    pub const fn is_solid(self) -> bool {
+        matches!(self, DungeonTile::Wall | DungeonTile::TreasureChest { .. })
     }
 }
 
@@ -106,25 +122,10 @@ impl Default for DungeonTile {
     }
 }
 
-impl DungeonTile {
-    /// Returns whether or not the tile can be traversed by the player.
-    pub fn is_solid(&self) -> bool {
-        matches!(self, DungeonTile::Wall | DungeonTile::TreasureChest { .. })
-    }
-
-    // REVIEW: Move this to a [`ToBlockCharachter`] implementation?
-    pub(crate) fn _print(&self, var1: bool, var2: bool) -> ANSIString {
-        let style = Style::new();
-
-        if var1 {
-            style.fg(Green);
-        }
-
-        if var2 {
-            style.bold();
-        }
-
-        style.paint(match self {
+impl ToBlockDrawingCharacter for DungeonTile {
+    fn to_block(&self) -> &'static str {
+        #[allow(clippy::non_ascii_literal)]
+        match self {
             DungeonTile::Empty => "  ",
             DungeonTile::Wall => "██",
             DungeonTile::SecretDoor { .. } => "SD",
@@ -132,6 +133,6 @@ impl DungeonTile {
             DungeonTile::TreasureChest { .. } => "TC",
             DungeonTile::Entrance => "EN",
             DungeonTile::Exit => "EX",
-        })
+        }
     }
 }

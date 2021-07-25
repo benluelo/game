@@ -40,9 +40,7 @@ impl FloorBuilder<HasBorders> {
                 height: self.height,
                 map: self.map,
                 noise_map: self.noise_map,
-                extra: HasConnections {
-                    ..Default::default()
-                },
+                extra: HasConnections::default(),
                 frames: self.frames,
                 id: self.id,
             };
@@ -53,8 +51,7 @@ impl FloorBuilder<HasBorders> {
             .borders
             .iter()
             .cloned()
-            .map(|Border { id, points }| points.into_iter().zip(iter::repeat(id)))
-            .flatten()
+            .flat_map(|Border { id, points }| points.into_iter().zip(iter::repeat(id)))
             .collect::<HashMap<Point, BorderId>>();
 
         let mut connections_with_points = HashMap::<(Point, BorderId), (Point, BorderId)>::new();

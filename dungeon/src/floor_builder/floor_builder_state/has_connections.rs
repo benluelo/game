@@ -59,7 +59,7 @@ impl FloorBuilder<HasConnections> {
                         (!self.is_out_of_bounds(point) && (point == to))
                             || matches!(
                                 self.map.at(point, self.width),
-                                &DungeonTile::SecretDoor { .. } | &DungeonTile::SecretPassage
+                                DungeonTile::SecretDoor { .. } | DungeonTile::SecretPassage
                             )
                     },
                 )

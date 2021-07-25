@@ -15,7 +15,9 @@ impl<const LOW: i32, const HIGH: i32> Iterator for BoundedIntRangeInclusive<{ LO
     fn next(&mut self) -> Option<Self::Item> {
         match self.pointer.cmp(&self.end) {
             Ordering::Greater => None,
-            Ordering::Equal => {
+            Ordering::Equal =>
+            {
+                #[allow(clippy::if_not_else)]
                 if !self.finished {
                     self.finished = true;
                     Some(self.pointer)

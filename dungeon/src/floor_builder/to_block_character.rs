@@ -4,7 +4,7 @@ use super::{MAX_FLOOR_SIZE, MIN_FLOOR_SIZE};
 
 #[allow(dead_code)]
 pub(crate) fn print_vec_2d<T: ToBlockDrawingCharacter>(
-    vec: Vec<T>,
+    vec: &[T],
     width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
 ) -> String {
     vec.chunks(width.as_unbounded() as usize)
@@ -19,18 +19,10 @@ pub trait ToBlockDrawingCharacter {
 
 impl ToBlockDrawingCharacter for bool {
     fn to_block(&self) -> &'static str {
+        #[allow(clippy::non_ascii_literal)]
         match self {
             true => "██",
             false => "░░",
         }
     }
 }
-
-// impl ToBlockDrawingCharacter for u128 {
-//     fn to_block(&self) -> &'static str {
-//         match self {
-//             true => "██",
-//             false => "░░",
-//         }
-//     }
-// }

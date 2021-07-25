@@ -1,3 +1,5 @@
+use std::convert::TryInto;
+
 use crate::{DungeonTile, Floor, FloorBuilder};
 
 use super::{FloorBuilderState, Smoothable};
@@ -27,8 +29,8 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
             {
                 let mut encoder = Encoder::new(
                     &mut image,
-                    self.width.as_unbounded() as u16,
-                    self.height.as_unbounded() as u16,
+                    self.width.as_unbounded().try_into().unwrap(),
+                    self.height.as_unbounded().try_into().unwrap(),
                     &DungeonTile::COLOR_MAP,
                 )
                 .unwrap();

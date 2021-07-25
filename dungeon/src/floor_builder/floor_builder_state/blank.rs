@@ -10,7 +10,7 @@ use rand::{thread_rng, Rng};
 
 use crate::{
     distance,
-    floor_builder::{MAX_FLOOR_SIZE, MIN_FLOOR_SIZE, RANDOM_FILL_WALL_CHANCE},
+    floor_builder::{MAX_FLOOR_SIZE, MIN_FLOOR_SIZE, RANDOM_FILL_WALL_PERCENT_CHANCE},
     point_index::PointIndex,
     Column, DungeonTile, FloorBuilder, Point, Row,
 };
@@ -32,12 +32,12 @@ impl FloorBuilder<Blank> {
         for column in self
             .width
             .expand_lower::<0>()
-            .range_from(&0.try_into().unwrap())
+            .range_from(0.try_into().unwrap())
         {
             for row in self
                 .height
                 .expand_lower::<0>()
-                .range_from(&0.try_into().unwrap())
+                .range_from(0.try_into().unwrap())
             {
                 let point = Point {
                     column: Column::new(column),
@@ -54,7 +54,7 @@ impl FloorBuilder<Blank> {
 
                 // make a wall some percent of the time
                 *self.map.at_mut(point, self.width) =
-                    if rng.gen_range(0..=100) <= RANDOM_FILL_WALL_CHANCE {
+                    if rng.gen_range(0..=100) <= RANDOM_FILL_WALL_PERCENT_CHANCE {
                         DungeonTile::Wall
                     } else {
                         DungeonTile::Empty
@@ -102,6 +102,7 @@ impl FloorBuilder<Blank> {
             };
             let dist = distance(maybe_end, start);
 
+            #[allow(clippy::redundant_else)] // I prefer the explicitness here
             if dist > (larger_dimension.as_unbounded() as f64 / 2.0)
                 && dist < (larger_dimension.as_unbounded() as f64)
             {
@@ -163,9 +164,12 @@ fn get_noise_value(
     height: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
     width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
 ) -> u16 {
+    /// lol
     mod u4 {
         pub const MAX: u8 = 16;
     }
+
+    #[allow(clippy::cast_possible_truncation)]
     let n = noise
         .get([
             (column.as_unbounded() as f64 / width.as_unbounded() as f64),
@@ -183,6 +187,7 @@ fn get_noise_value(
     // these ⭐ magic numbers ⭐ have been hand crafted to perfection
     // don't touch them pls
     // TODO: Figure out what these magic numbers do lol
+    #[allow(clippy::cast_possible_truncation)]
     if n <= (u16::MAX as f64 / 2.5) as u16 {
         n / 2
     } else {
@@ -230,11 +235,11 @@ mod test_noise {
 
         for column in BoundedInt::<0, MAX_FLOOR_SIZE>::new(WIDTH)
             .unwrap()
-            .range_from(&0.try_into().unwrap())
+            .range_from(0.try_into().unwrap())
         {
             for row in BoundedInt::<0, MAX_FLOOR_SIZE>::new(HEIGHT)
                 .unwrap()
-                .range_from(&0.try_into().unwrap())
+                .range_from(0.try_into().unwrap())
             {
                 let point = Point {
                     column: Column::new(column),

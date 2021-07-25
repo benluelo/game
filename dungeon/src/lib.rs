@@ -1,4 +1,5 @@
 #![warn(missing_docs)]
+#![allow(clippy::needless_continue)]
 
 //! Dungeon creation. Creates 2d cave-like dungeons using cellular automata (among other techniques).
 //!
@@ -32,7 +33,6 @@ pub mod point_index;
 mod border;
 mod connection_path;
 mod floor_builder;
-mod r#macro;
 mod point;
 
 pub use point::Point;
@@ -74,6 +74,7 @@ pub struct Dungeon {
 impl Dungeon {
     /// Encodes the dungeon to a gif, with each floor being a frame, and
     /// returns the image as bytes.
+    #[must_use]
     pub fn to_gif(&self) -> Vec<u8> {
         use gif::{Encoder, Frame, Repeat};
         use std::borrow::Cow;
@@ -82,16 +83,30 @@ impl Dungeon {
         {
             let mut encoder = Encoder::new(
                 &mut image,
-                self.floors[0].width.as_unbounded() as u16,
-                self.floors[0].height.as_unbounded() as u16,
+                self.floors
+                    .iter()
+                    .reduce(|a, b| if a.width >= b.width { a } else { b })
+                    .unwrap()
+                    .width
+                    .as_unbounded()
+                    .try_into()
+                    .unwrap(),
+                self.floors
+                    .iter()
+                    .reduce(|a, b| if a.height >= b.height { a } else { b })
+                    .unwrap()
+                    .height
+                    .as_unbounded()
+                    .try_into()
+                    .unwrap(),
                 &DungeonTile::COLOR_MAP,
             )
             .unwrap();
             encoder.set_repeat(Repeat::Infinite).unwrap();
             for floor in &self.floors {
                 let frame = Frame {
-                    width: floor.width.as_unbounded() as u16,
-                    height: floor.height.as_unbounded() as u16,
+                    width: floor.width.as_unbounded().try_into().unwrap(),
+                    height: floor.height.as_unbounded().try_into().unwrap(),
                     buffer: Cow::Owned(
                         floor
                             .data
@@ -100,7 +115,7 @@ impl Dungeon {
                             .collect::<Vec<_>>(),
                     ),
                     delay: 300,
-                    ..Default::default()
+                    ..Frame::default()
                 };
                 encoder.write_frame(&frame).unwrap();
             }
@@ -114,16 +129,15 @@ impl Dungeon {
 pub struct Floor {
     /// width
     pub width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
-
     /// height
     pub height: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
-
     /// data
     pub data: Vec<DungeonTile>,
 }
 
 impl Floor {
     /// Creates a new floor with the given parameters.
+    #[must_use]
     pub fn new(
         id: FloorId,
         width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
@@ -139,9 +153,9 @@ impl Floor {
 
         self.width
             .expand_lower()
-            .range_from(&0.try_into().unwrap())
-            .map(move |column| {
-                height.range_from(&0.try_into().unwrap()).map(move |row| {
+            .range_from(0.try_into().unwrap())
+            .flat_map(move |column| {
+                height.range_from(0.try_into().unwrap()).map(move |row| {
                     let point = Point {
                         column: Column::new(column),
                         row: Row::new(row),
@@ -149,15 +163,16 @@ impl Floor {
                     (point, self.data.at(point, self.width))
                 })
             })
-            .flatten()
     }
 
     /// Returns a refrence to the tile at the specified point.
+    #[must_use]
     pub fn at(&self, point: Point) -> &DungeonTile {
         self.data.at(point, self.width)
     }
 
     /// Returns a mutable reference to the tile at the specified point.
+    #[must_use]
     pub fn at_mut(&mut self, point: Point) -> &mut DungeonTile {
         self.data.at_mut(point, self.width)
     }
@@ -175,6 +190,7 @@ impl fmt::Display for FloorId {
 
 impl Dungeon {
     /// Creates a new dungeon with the specified paramaters.
+    #[must_use]
     pub fn new(
         height: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
         width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
@@ -184,7 +200,7 @@ impl Dungeon {
     ) -> Self {
         Self {
             dungeon_type,
-            floors: (0u16..floor_count.get())
+            floors: (0_u16..floor_count.get())
                 // .into_par_iter()
                 .map(|id| FloorBuilder::create(FloorId(id), width, height, gif_output))
                 .collect(),
@@ -192,6 +208,10 @@ impl Dungeon {
     }
 
     /// Returns the dungeon as JSON.
+    ///
+    /// # Errors
+    /// This function should never error given the implementation of [`Serialize`] for [`Dungeon`],
+    /// however the [`Result`] is still returned from the call to [`serde_json::to_string`].
     pub fn to_json(&self) -> Result<String, serde_json::Error> {
         serde_json::to_string(self)
     }

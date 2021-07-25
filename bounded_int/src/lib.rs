@@ -17,9 +17,12 @@ pub enum BoundedIntError {
 
 // TODO: Move assertions to where clause once const_evaluatable_checked is stabilized
 impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
+    /// The lower bounds of the `BoundedInt`, inclusive.
     pub const LOW: i32 = LOW;
+    /// The upper bounds of the `BoundedInt`, inclusive.
     pub const HIGH: i32 = HIGH;
 
+    #[must_use = "returned value will be immediately dropped if not used"]
     pub fn new_clamped(n: i32) -> Self {
         assert!(
             LOW < HIGH,
@@ -30,6 +33,11 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
         BoundedInt(n.min(Self::HIGH).max(Self::LOW))
     }
 
+    /// Attempts to create a new [`BoundedInt`] with the provided value.
+    ///
+    /// # Errors
+    /// This function will error if the supplied value doesn't fit within
+    /// the bounds required.
     pub fn new(n: i32) -> Result<Self, BoundedIntError> {
         assert!(
             LOW < HIGH,
@@ -41,8 +49,9 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
         n.try_into()
     }
 
-    #[inline(always)]
-    pub fn as_unbounded(&self) -> i32 {
+    #[inline]
+    #[must_use = "`as_unbounded` does not mutate the original value"]
+    pub const fn as_unbounded(self) -> i32 {
         self.0
     }
 
@@ -72,14 +81,15 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     ///     ]
     /// );
     /// ```
-    pub fn range_to(&self, to: &Self) -> BoundedIntRange<{ LOW }, { HIGH }> {
+    #[must_use = "range will do nothing unless iterated over"]
+    pub const fn range_to(self, to: Self) -> BoundedIntRange<{ LOW }, { HIGH }> {
         BoundedIntRange {
-            end: *to,
-            pointer: *self,
+            end: to,
+            pointer: self,
         }
     }
 
-    /// Returns a [BoundedIntRange] from `from` to `self`.
+    /// Returns a [`BoundedIntRange`] from `from` to `self`.
     ///
     /// If `self` <= `from`, the iterator will be empty.
     ///
@@ -101,14 +111,15 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     ///     ]
     /// );
     /// ```
-    pub fn range_from(&self, from: &Self) -> BoundedIntRange<{ LOW }, { HIGH }> {
+    #[must_use = "range will do nothing unless iterated over"]
+    pub const fn range_from(self, from: Self) -> BoundedIntRange<{ LOW }, { HIGH }> {
         BoundedIntRange {
-            end: *self,
-            pointer: *from,
+            end: self,
+            pointer: from,
         }
     }
 
-    /// Returns a [BoundedIntRangeInclusive] from `self` to `to`.
+    /// Returns a [`BoundedIntRangeInclusive`] from `self` to `to`.
     ///
     /// If `to` <= `self`, the iterator will be empty.
     /// If `to` == `self`, the iterator will produce one item equal to `self`.
@@ -132,15 +143,16 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     ///     ]
     /// );
     /// ```
-    pub fn range_to_inclusive(&self, to: &Self) -> BoundedIntRangeInclusive<{ LOW }, { HIGH }> {
+    #[must_use = "range will do nothing unless iterated over"]
+    pub const fn range_to_inclusive(self, to: Self) -> BoundedIntRangeInclusive<{ LOW }, { HIGH }> {
         BoundedIntRangeInclusive {
-            end: *to,
-            pointer: *self,
+            end: to,
+            pointer: self,
             finished: false,
         }
     }
 
-    /// Returns a [BoundedIntRangeInclusive] from `from` to `self`.
+    /// Returns a [`BoundedIntRangeInclusive`] from `from` to `self`.
     ///
     /// If `self` < `from`, the iterator will be empty.
     /// If `self` == `from`, the iterator will produce one item equal to `self`.
@@ -164,15 +176,19 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     ///     ]
     /// );
     /// ```
-    pub fn range_from_inclusive(&self, from: &Self) -> BoundedIntRangeInclusive<{ LOW }, { HIGH }> {
+    #[must_use = "range will do nothing unless iterated over"]
+    pub const fn range_from_inclusive(
+        self,
+        from: Self,
+    ) -> BoundedIntRangeInclusive<{ LOW }, { HIGH }> {
         BoundedIntRangeInclusive {
-            end: *self,
-            pointer: *from,
+            end: self,
+            pointer: from,
             finished: false,
         }
     }
 
-    /// Raises the upper bounds of the BoundedInt to `HIGHER`.
+    /// Raises the upper bounds of the `BoundedInt` to `HIGHER`.
     /// # Examples
     /// ```rust
     /// use game::bounded_int::BoundedInt;
@@ -184,6 +200,7 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     /// // type inference makes this very simple to call
     /// requires_larger_bounds(small_bounds.expand_upper());
     ///```
+    #[must_use = "`expand_upper` does not mutate the original value"]
     pub fn expand_upper<const HIGHER: i32>(self) -> BoundedInt<{ LOW }, { HIGHER }> {
         assert!(
             HIGHER >= HIGH,
@@ -194,7 +211,7 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
         BoundedInt(self.0)
     }
 
-    /// Increases the lower bounds of the BoundedInt to `LOWER`.
+    /// Increases the lower bounds of the `BoundedInt` to `LOWER`.
     /// # Examples
     /// ```rust
     /// use game::bounded_int::BoundedInt;
@@ -206,6 +223,7 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     /// // type inference makes this very simple to call
     /// requires_larger_bounds(small_bounds.expand_lower());
     ///```
+    #[must_use = "`expand_lower` does not mutate the original value"]
     pub fn expand_lower<const LOWER: i32>(self) -> BoundedInt<{ LOWER }, { HIGH }> {
         assert!(
             LOWER <= LOW,
@@ -216,11 +234,12 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
         BoundedInt(self.0)
     }
 
+    #[must_use]
     pub fn new_unwrapped(from: i32) -> BoundedInt<{ LOW }, { HIGH }> {
         Self::new(from).unwrap()
     }
 
-    /// Expands the bounds of the BoundedInt to `LOWER` and `HIGHER`.
+    /// Expands the bounds of the `BoundedInt` to `LOWER` and `HIGHER`.
     /// # Examples
     /// ```rust
     /// use game::bounded_int::BoundedInt;
@@ -232,6 +251,7 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     /// // type inference makes this very simple to call
     /// requires_larger_bounds(small_bounds.expand_bounds());
     ///```
+    #[must_use = "`expand_bounds` does not mutate the original value"]
     pub fn expand_bounds<const LOWER: i32, const HIGHER: i32>(
         self,
     ) -> BoundedInt<{ LOWER }, { HIGHER }> {
@@ -257,12 +277,14 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     }
 
     /// Performs subtraction that saturates at the numeric bounds instead of overflowing.
-    pub fn saturating_sub(&self, rhs: i32) -> Self {
+    #[must_use = "`saturating_sub` does not mutate the original value"]
+    pub fn saturating_sub(self, rhs: i32) -> Self {
         Self::new_clamped(self.0 - rhs)
     }
 
     /// Performs addition that saturates at the numeric bounds instead of overflowing.
-    pub fn saturating_add(&self, rhs: i32) -> Self {
+    #[must_use = "`saturating_add` does not mutate the original value"]
+    pub fn saturating_add(self, rhs: i32) -> Self {
         Self::new_clamped(self.0 + rhs)
     }
 }
@@ -282,7 +304,7 @@ impl<const LOW: i32, const HIGH: i32> TryFrom<i32> for BoundedInt<{ LOW }, { HIG
         } else if value > Self::HIGH {
             Err(BoundedIntError::TooHigh(value))
         } else {
-            Ok(BoundedInt(value))
+            Ok(Self(value))
         }
     }
 }
@@ -296,7 +318,7 @@ mod test_bounded_int {
         let start = BoundedInt::<20, 25>::new(20).unwrap();
         let end = BoundedInt::<20, 25>::new(25).unwrap();
 
-        let v: Vec<_> = start.range_to(&end).collect();
+        let v: Vec<_> = start.range_to(end).collect();
 
         assert!(matches!(
             *v,
@@ -315,7 +337,7 @@ mod test_bounded_int {
         let start = BoundedInt::<0, 25>::new(20).unwrap();
         let end = BoundedInt::<0, 25>::new(25).unwrap();
 
-        let v: Vec<_> = start.range_to_inclusive(&end).collect();
+        let v: Vec<_> = start.range_to_inclusive(end).collect();
 
         assert!(matches!(
             *v,
@@ -335,7 +357,7 @@ mod test_bounded_int {
         let start = BoundedInt::<0, 100>::new(20).unwrap();
         let end = BoundedInt::<0, 100>::new(25).unwrap();
 
-        let v: Vec<_> = end.range_from(&start).collect();
+        let v: Vec<_> = end.range_from(start).collect();
 
         assert!(matches!(
             *v,
@@ -354,7 +376,7 @@ mod test_bounded_int {
         let start = BoundedInt::<0, 25>::new(20).unwrap();
         let end = BoundedInt::<0, 25>::new(25).unwrap();
 
-        let v: Vec<_> = end.range_from_inclusive(&start).collect();
+        let v: Vec<_> = end.range_from_inclusive(start).collect();
 
         assert!(matches!(
             *v,

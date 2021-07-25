@@ -17,11 +17,11 @@ impl FloorBuilder<HasSecretPassages> {
         let mut empty_points_sorted_by_noise = self
             .width
             .expand_lower()
-            .range_from(&0.try_into().unwrap())
+            .range_from(0.try_into().unwrap())
             .flat_map(|column| {
                 self.height
                     .expand_lower()
-                    .range_from(&0.try_into().unwrap())
+                    .range_from(0.try_into().unwrap())
                     .map(move |row| Point {
                         column: Column::new(column),
                         row: Row::new(row),
