@@ -48,7 +48,8 @@ use bounded_int::BoundedInt;
 // ANCHOR[id=connection]
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct Connection {
-    /// The distance between the two points. Convenience field so that it doesn't have to be recalculated multiple times.
+    /// The distance between the two points. Convenience field so that it
+    /// doesn't have to be recalculated multiple times.
     distance: f64,
     /// The start of the connection.
     from: (Point, BorderId),

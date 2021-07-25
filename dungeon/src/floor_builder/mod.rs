@@ -21,7 +21,8 @@ pub(crate) mod to_block_character;
 pub const MIN_FLOOR_SIZE: i32 = 10;
 /// The maximum dimensions a [`Floor`] can have.
 pub const MAX_FLOOR_SIZE: i32 = 200;
-/// The percent chance of a wall being placed during the initial noise generation.
+/// The percent chance of a wall being placed during the initial noise
+/// generation.
 const RANDOM_FILL_WALL_PERCENT_CHANCE: u8 = 52;
 
 /// Builder struct for [`Floor`].
@@ -35,11 +36,14 @@ pub struct FloorBuilder<S: FloorBuilderState> {
     pub(crate) height: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
     /// The map of tiles.
     pub(crate) map: Vec<DungeonTile>,
-    /// The map containing the noise for the floor builder, used in various places during the build process.
+    /// The map containing the noise for the floor builder, used in various
+    /// places during the build process.
     pub(crate) noise_map: Vec<u16>,
-    /// The current state of the floor builder. May or may not contain extra data to be used at that stage of generation.
+    /// The current state of the floor builder. May or may not contain extra
+    /// data to be used at that stage of generation.
     extra: S,
-    /// The frames of the floor builder as it is being built. Defaults to [`None`] unless specified to output to a gif.
+    /// The frames of the floor builder as it is being built. Defaults to
+    /// [`None`] unless specified to output to a gif.
     frames: Option<Vec<gif::Frame<'static>>>,
     /// A unique, opaque ID assigned to the floor builder upon creation.
     id: FloorId,
@@ -105,9 +109,11 @@ impl<S: Smoothable> FloorBuilder<S> {
 }
 
 impl<S: FloorBuilderState> FloorBuilder<S> {
-    /// Creates a [`gif::Frame`] from the current state of the floor builder, storing it in [`FloorBuilder::frames`].
+    /// Creates a [`gif::Frame`] from the current state of the floor builder,
+    /// storing it in [`FloorBuilder::frames`].
     ///
-    /// Note that this is essentially a noop if `self.frames` is [`None`] (i.e., gif output has not been enabled).
+    /// Note that this is essentially a noop if `self.frames` is [`None`] (i.e.,
+    /// gif output has not been enabled).
     fn frame_from_current_state(&mut self, delay: u16) {
         if let Some(ref mut frames) = self.frames {
             // println!("adding frame");
@@ -122,7 +128,8 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
     }
 
     // ANCHOR state machine entry point
-    /// Creates a blank [`FloorBuilder`], with all the values set to their defaults.
+    /// Creates a blank [`FloorBuilder`], with all the values set to their
+    /// defaults.
     pub(in crate::floor_builder) fn blank(
         id: FloorId,
         width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
@@ -222,7 +229,8 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
         false
     }
 
-    /// Considers the 1-wide border around the edge of the map to be out of bounds.
+    /// Considers the 1-wide border around the edge of the map to be out of
+    /// bounds.
     fn is_out_of_bounds(&self, point: Point) -> bool {
         // REVIEW: points can't be 0
         point.column.get() == 0.try_into().unwrap()
@@ -231,13 +239,14 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
             || point.row.get() >= (self.height.as_unbounded() - 1).try_into().unwrap()
     }
 
-    /// Gets the 8 neighbours around the specified point that aren't out of bounds.
+    /// Gets the 8 neighbours around the specified point that aren't out of
+    /// bounds.
     ///
     /// ```txt
     /// x x x
     /// x p x
     /// x x x
-    ///```
+    /// ```
     fn get_legal_neighbors_with_diagonals(&self, point: Point) -> impl Iterator<Item = Point> + '_ {
         #[rustfmt::skip]
         let v = vec![
@@ -257,13 +266,14 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
             .filter(move |&p| !self.is_out_of_bounds(p) && p != point)
     }
 
-    /// Gets the 4 neighbours around the specified point that aren't out of bounds.
+    /// Gets the 4 neighbours around the specified point that aren't out of
+    /// bounds.
     ///
     /// ```txt
     /// o x o
     /// x p x
     /// o x o
-    ///```
+    /// ```
     fn get_legal_neighbors(&self, point: Point) -> impl Iterator<Item = Point> + '_ {
         #[rustfmt::skip]
         let v = vec![
@@ -278,13 +288,14 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
             .filter(move |&p| !self.is_out_of_bounds(p) && p != point)
     }
 
-    /// Gets the 2 neighbours around the specified point that aren't out of bounds, below it and to the right.
+    /// Gets the 2 neighbours around the specified point that aren't out of
+    /// bounds, below it and to the right.
     ///
     /// ```txt
     /// o o o
     /// o p x
     /// o x 0
-    ///```
+    /// ```
     fn get_legal_neighbors_down_and_right(&self, point: Point) -> impl Iterator<Item = Point> + '_ {
         let down = point.saturating_add_row(1);
         let right = point.saturating_add_column(1);
@@ -293,7 +304,8 @@ impl<S: FloorBuilderState> FloorBuilder<S> {
             .filter(move |&p| !self.is_out_of_bounds(p) && p != point)
     }
 
-    /// Pretty-prints the map in it's current state. Used for debugging and tests.
+    /// Pretty-prints the map in it's current state. Used for debugging and
+    /// tests.
     #[allow(unused_variables)]
     pub(crate) fn _pretty(&self, extra_points: &[Point], extra_points2: &[Point]) -> String {
         self.map

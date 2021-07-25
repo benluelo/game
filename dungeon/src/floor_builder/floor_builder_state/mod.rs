@@ -15,7 +15,8 @@ pub(in crate::floor_builder) mod blank;
 /// A [`FloorBuilder`] that has state to write to it's internal map.
 pub(in crate::floor_builder) mod drawable;
 
-/// A resting state for the [`FloorBuilder`]. It is technically 'completable' in this state.
+/// A resting state for the [`FloorBuilder`]. It is technically 'completable' in
+/// this state.
 pub(in crate::floor_builder) mod filled;
 
 /// A [`FloorBuilder`] that has the borders around all of the caves in it's map.
@@ -24,11 +25,13 @@ pub(in crate::floor_builder) mod has_borders;
 /// [`FloorBuilder`] state containing connections between the caves.
 pub(in crate::floor_builder) mod has_connections;
 
-/// State that marks the [`FloorBuilder`] as having the secret paths drawn between the remaining caves that weren't connected.
+/// State that marks the [`FloorBuilder`] as having the secret paths drawn
+/// between the remaining caves that weren't connected.
 pub(in crate::floor_builder) mod has_secret_connections;
 
 /// Original state of the [`FloorBuilder`]. Entry point to the state machine.
 pub(in crate) mod new;
 
-/// State that represents a [`FloorBuilder`] that has has the cellular automata run on it, smoothing out the edges of the caves.
+/// State that represents a [`FloorBuilder`] that has has the cellular automata
+/// run on it, smoothing out the edges of the caves.
 pub(in crate::floor_builder) mod smoothed;

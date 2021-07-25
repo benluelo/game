@@ -10,7 +10,8 @@ use crate::{
 
 use super::{has_connections::HasConnections, FloorBuilderState};
 
-/// State that contains the borders around all of the disjointed caves in the floor.
+/// State that contains the borders around all of the disjointed caves in the
+/// floor.
 #[derive(Debug)]
 pub(in crate::floor_builder) struct HasBorders {
     /// The borders. Each border has a unique [`BorderId`] assigned to it.
@@ -18,7 +19,8 @@ pub(in crate::floor_builder) struct HasBorders {
 }
 impl FloorBuilderState for HasBorders {}
 
-/// How many iterations there should be when generating the connections between the caves.
+/// How many iterations there should be when generating the connections between
+/// the caves.
 #[derive(Debug, Clone, Copy)]
 pub enum BuildConnectionIterations {
     /// Until there is only 1 scc left (the caves are fully connected).
@@ -85,7 +87,7 @@ impl FloorBuilder<HasBorders> {
                 // filter out border points that are either:
                 // - in the current border, or
                 .filter(|(_, &id)| id != current_border.id)
-                //
+                // 
                 // - in a border the current border is already connected to
                 .filter(|(_, &id)| !already_connected_ids.contains(&id))
                 .flat_map(|(&point, &id)| {

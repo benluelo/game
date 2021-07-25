@@ -7,7 +7,8 @@ use super::{FloorBuilderState, Smoothable};
 /// A 'resting' state for the floor builder. All of the data to
 /// be drawn has been, and it can *techincally* be completed as is.
 ///
-/// Note that even though this can be thought as the 'final state' of the builder, there is still likely steps remaining until the builder is done.
+/// Note that even though this can be thought as the 'final state' of the
+/// builder, there is still likely steps remaining until the builder is done.
 #[derive(Debug)]
 pub(in crate::floor_builder) struct Filled {}
 impl FloorBuilderState for Filled {}
@@ -24,7 +25,8 @@ impl Smoothable for Filled {}
 // }
 
 impl FloorBuilder<Filled> {
-    /// Finishes the builder, returning the completed [`Floor`] and writing the gif out to `out/frame_{id}.gif`.
+    /// Finishes the builder, returning the completed [`Floor`] and writing the
+    /// gif out to `out/frame_{id}.gif`.
     pub(in crate::floor_builder) fn finish(self) -> Floor {
         if let Some(frames) = self.frames {
             use gif::{Encoder, Repeat};

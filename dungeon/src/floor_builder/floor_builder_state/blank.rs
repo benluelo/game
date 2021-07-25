@@ -24,7 +24,8 @@ pub(in crate::floor_builder) struct Blank {}
 impl FloorBuilderState for Blank {}
 
 impl FloorBuilder<Blank> {
-    /// TODO: Split this function into two parts, `random_fill` and `trace_entrance_exit` (or something along those lines)
+    /// TODO: Split this function into two parts, `random_fill` and
+    /// `trace_entrance_exit` (or something along those lines)
     pub(in crate::floor_builder) fn random_fill(mut self) -> FloorBuilder<Filled> {
         let mut rng = thread_rng();
 
