@@ -7,8 +7,10 @@ use crate::{
 
 use super::FloorBuilderState;
 
+/// A [`FloorBuilder`] that has data to be written to it's internal map.
 #[derive(Debug)]
 pub(in crate::floor_builder) struct Drawable {
+    /// The connection paths to be drawn.
     pub(super) to_draw: Vec<ConnectionPath>,
 }
 impl FloorBuilderState for Drawable {}

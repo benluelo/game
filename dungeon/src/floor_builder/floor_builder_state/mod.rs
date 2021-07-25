@@ -9,8 +9,6 @@ pub trait Smoothable: FloorBuilderState {}
 
 pub(in crate) mod new;
 pub(in crate::floor_builder) mod blank;
-pub(in crate::floor_builder) mod buildable;
-pub(in crate::floor_builder) mod done;
 pub(in crate::floor_builder) mod drawable;
 pub(in crate::floor_builder) mod filled;
 pub(in crate::floor_builder) mod has_borders;

@@ -157,6 +157,7 @@ impl FloorBuilder<Blank> {
     }
 }
 
+/// Gets the noise value for the provided billow at the row and column specified.
 fn get_noise_value(
     noise: &mut Billow,
     column: BoundedInt<0, MAX_FLOOR_SIZE>,
@@ -164,8 +165,9 @@ fn get_noise_value(
     height: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
     width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
 ) -> u16 {
-    /// lol
+    /// Makes it easier for me to think about powers of two
     mod u4 {
+        /// 2^4
         pub const MAX: u8 = 16;
     }
 
@@ -195,6 +197,9 @@ fn get_noise_value(
     }
 }
 
+/// Creates a [`Billow`] using some magic numbers that have been fine tuned to work well.
+///
+/// Don't touch 'em
 fn create_billow(rng: &mut impl rand::Rng) -> Billow {
     Billow::new()
         .set_octaves(1)
