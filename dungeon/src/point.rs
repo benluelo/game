@@ -20,21 +20,21 @@ pub struct Point {
     pub row: Row,
 }
 
-/// Wrapper type around a [`BoundedInt`] that represents the row position of a [`Point`].
-/// Note that the [`BoundedInt`] is bound on the maximum and minimum that a point can be,
-/// not the floor size itself.
+/// Wrapper type around a [`BoundedInt`] that represents the row position of a
+/// [`Point`]. Note that the [`BoundedInt`] is bound on the maximum and minimum
+/// that a point can be, not the floor size itself.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Row(pub(super) BoundedInt<0, { MAX_FLOOR_SIZE }>);
 
-/// Wrapper type around a [`BoundedInt`] that represents the column position of a [`Point`].
-/// Note that the [`BoundedInt`] is bound on the maximum and minimum that a point can be,
-/// not the floor size itself.
+/// Wrapper type around a [`BoundedInt`] that represents the column position of
+/// a [`Point`]. Note that the [`BoundedInt`] is bound on the maximum and
+/// minimum that a point can be, not the floor size itself.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Column(pub(super) BoundedInt<0, { MAX_FLOOR_SIZE }>);
 
 impl Point {
-    /// Adds the provided value to the row, saturating on the numeric bounds instead of
-    /// overflowing or panicking.
+    /// Adds the provided value to the row, saturating on the numeric bounds
+    /// instead of overflowing or panicking.
     #[must_use]
     pub fn saturating_add_row(self, n: i32) -> Self {
         Self {
@@ -43,8 +43,8 @@ impl Point {
         }
     }
 
-    /// Subtracts the provided value from the row, saturating on the numeric bounds instead of
-    /// overflowing or panicking.
+    /// Subtracts the provided value from the row, saturating on the numeric
+    /// bounds instead of overflowing or panicking.
     #[must_use]
     pub fn saturating_sub_row(self, n: i32) -> Self {
         Self {
@@ -53,8 +53,8 @@ impl Point {
         }
     }
 
-    /// Adds the provided value to the column, saturating on the numeric bounds instead of
-    /// overflowing or panicking.
+    /// Adds the provided value to the column, saturating on the numeric bounds
+    /// instead of overflowing or panicking.
     #[must_use]
     pub fn saturating_add_column(self, n: i32) -> Self {
         Self {
@@ -63,8 +63,8 @@ impl Point {
         }
     }
 
-    /// Subtracts the provided value from the column, saturating on the numeric bounds instead of
-    /// overflowing or panicking.
+    /// Subtracts the provided value from the column, saturating on the numeric
+    /// bounds instead of overflowing or panicking.
     #[must_use]
     pub fn saturating_sub_column(self, n: i32) -> Self {
         Self {
@@ -73,10 +73,12 @@ impl Point {
         }
     }
 
-    /// Adds the provided value to the row, returning the error if it would overflow.
+    /// Adds the provided value to the row, returning the error if it would
+    /// overflow.
     ///
     /// # Errors
-    /// This function will return an error if the [`Row`] would overflow its bounds.
+    /// This function will return an error if the [`Row`] would overflow its
+    /// bounds.
     pub fn add_row(self, n: u16) -> Result<Self, BoundedIntOverflowError> {
         Ok(Self {
             row: Row(self.row.0.add(n)?),
@@ -84,10 +86,12 @@ impl Point {
         })
     }
 
-    /// Subtracts the provided value from the row, returning the error if it would overflow.
+    /// Subtracts the provided value from the row, returning the error if it
+    /// would overflow.
     ///
     /// # Errors
-    /// This function will return an error if the [`Row`] would overflow its bounds.
+    /// This function will return an error if the [`Row`] would overflow its
+    /// bounds.
     pub fn sub_row(self, n: u16) -> Result<Self, BoundedIntUnderflowError> {
         Ok(Self {
             row: Row(self.row.0.sub(n)?),
@@ -95,10 +99,12 @@ impl Point {
         })
     }
 
-    /// Adds the provided value to the column, returning the error if it would overflow.
+    /// Adds the provided value to the column, returning the error if it would
+    /// overflow.
     ///
     /// # Errors
-    /// This function will return an error if the [`Column`] would overflow its bounds.
+    /// This function will return an error if the [`Column`] would overflow its
+    /// bounds.
     pub fn add_column(self, n: u16) -> Result<Self, BoundedIntOverflowError> {
         Ok(Self {
             column: Column(self.column.0.add(n)?),
@@ -106,10 +112,12 @@ impl Point {
         })
     }
 
-    /// Subtracts the provided value from the column, returning the error if it would overflow.
+    /// Subtracts the provided value from the column, returning the error if it
+    /// would overflow.
     ///
     /// # Errors
-    /// This function will return an error if the [`Column`] would overflow its bounds.
+    /// This function will return an error if the [`Column`] would overflow its
+    /// bounds.
     pub fn sub_column(self, n: u16) -> Result<Self, BoundedIntUnderflowError> {
         Ok(Self {
             column: Column(self.column.0.sub(n)?),
@@ -177,13 +185,15 @@ macro_rules! impl_row_col {
                 self.0
             }
 
-            /// Performs addition, saturating on the bounds instead of overflowing or panicking.
+            /// Performs addition, saturating on the bounds instead of overflowing or
+            /// panicking.
             #[must_use]
             pub fn saturating_add(self, n: i32) -> Self {
                 Self(self.0.saturating_add(n))
             }
 
-            /// Performs subtraction, saturating on the bounds instead of overflowing or panicking.
+            /// Performs subtraction, saturating on the bounds instead of overflowing or
+            /// panicking.
             #[must_use]
             pub fn saturating_sub(self, n: i32) -> Self {
                 Self(self.0.saturating_sub(n))

@@ -12,7 +12,8 @@ pub enum DungeonTile {
     Empty,
     /// Solid wall. Not traversable.
     Wall,
-    /// A secret door to a secret passageway. May or may not require a key to open.
+    /// A secret door to a secret passageway. May or may not require a key to
+    /// open.
     SecretDoor {
         /// Whether or not the door requires a key to open.
         requires_key: bool,
@@ -27,11 +28,12 @@ pub enum DungeonTile {
         /// Placeholder for now to make refactoring easier as fields are added.
         contents: (),
     },
-    /// Entrance to the floor. Both entrances and exits are to be one-way paths; once
-    /// you leave a floor you cannot go back to it.
+    /// Entrance to the floor. Both entrances and exits are to be one-way paths;
+    /// once you leave a floor you cannot go back to it.
     Entrance,
-    /// Exit to the next floor, or the end of the dungeon. Both entrances and exits
-    /// are to be one-way paths; once you leave a floor you cannot go back to it.
+    /// Exit to the next floor, or the end of the dungeon. Both entrances and
+    /// exits are to be one-way paths; once you leave a floor you cannot go
+    /// back to it.
     Exit,
 }
 

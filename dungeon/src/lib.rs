@@ -2,7 +2,8 @@
 #![allow(clippy::needless_continue)]
 #![warn(missing_docs, clippy::missing_docs_in_private_items)]
 
-//! Dungeon creation. Creates 2d cave-like dungeons using cellular automata (among other techniques).
+//! Dungeon creation. Creates 2d cave-like dungeons using cellular automata
+//! (among other techniques).
 //!
 //! # Examples
 //! ```rust
@@ -26,7 +27,8 @@ use std::{convert::TryInto, fmt, num::NonZeroU16, usize};
 ///
 /// See the type-level documentation for more information.
 pub mod dungeon_tile;
-/// A 1-dimensional type representing a 2-dimensional grid, indexable by a [`Point`].
+/// A 1-dimensional type representing a 2-dimensional grid, indexable by a
+/// [`Point`].
 ///
 /// See the type-level documentation for more information.
 pub mod point_index;
@@ -42,11 +44,15 @@ pub use point_index::PointIndex;
 use crate::floor_builder::{MAX_FLOOR_SIZE, MIN_FLOOR_SIZE};
 use bounded_int::BoundedInt;
 
+/// A connection between two points on two different [`Border`]s.
 // ANCHOR[id=connection]
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct Connection {
+    /// The distance between the two points. Convenience field so that it doesn't have to be recalculated multiple times.
     distance: f64,
+    /// The start of the connection.
     from: (Point, BorderId),
+    /// The end of the connection.
     to: (Point, BorderId),
 }
 
@@ -148,7 +154,8 @@ impl Floor {
         FloorBuilder::create(id, width, height, gif_output)
     }
 
-    /// Returns an iterator over the tiles in the floor and their respective [`Point`].
+    /// Returns an iterator over the tiles in the floor and their respective
+    /// [`Point`].
     pub fn iter_points_and_tiles(&self) -> impl Iterator<Item = (Point, &DungeonTile)> + '_ {
         let height = self.height.expand_lower();
 
@@ -211,8 +218,9 @@ impl Dungeon {
     /// Returns the dungeon as JSON.
     ///
     /// # Errors
-    /// This function should never error given the implementation of [`Serialize`] for [`Dungeon`],
-    /// however the [`Result`] is still returned from the call to [`serde_json::to_string`].
+    /// This function should never error given the implementation of
+    /// [`Serialize`] for [`Dungeon`], however the [`Result`] is still
+    /// returned from the call to [`serde_json::to_string`].
     pub fn to_json(&self) -> Result<String, serde_json::Error> {
         serde_json::to_string(self)
     }
@@ -274,7 +282,8 @@ mod test_dungeon {
     // pub(crate) fn test_border_finding() {
     //     let floor_builder = FloorBuilder::<Blank>::blank(50, 100);
     //     let caves = floor_builder.get_cave_borders();
-    //     let all_border_points = caves.iter().cloned().flatten().collect::<Vec<_>>();
+    //     let all_border_points =
+    // caves.iter().cloned().flatten().collect::<Vec<_>>();
 
     //     println!("{}", floor_builder.pretty(all_border_points, vec![]));
     //     let caves_pretty = caves

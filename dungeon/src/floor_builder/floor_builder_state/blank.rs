@@ -17,12 +17,14 @@ use crate::{
 
 use super::{filled::Filled, FloorBuilderState};
 
-/// A blank floor builder, with all values in the floor map and the noise map set to their default.
+/// A blank floor builder, with all values in the floor map and the noise map
+/// set to their default.
 #[derive(Debug)]
 pub(in crate::floor_builder) struct Blank {}
 impl FloorBuilderState for Blank {}
 
 impl FloorBuilder<Blank> {
+    /// TODO: Split this function into two parts, `random_fill` and `trace_entrance_exit` (or something along those lines)
     pub(in crate::floor_builder) fn random_fill(mut self) -> FloorBuilder<Filled> {
         let mut rng = thread_rng();
 
@@ -157,7 +159,8 @@ impl FloorBuilder<Blank> {
     }
 }
 
-/// Gets the noise value for the provided billow at the row and column specified.
+/// Gets the noise value for the provided billow at the row and column
+/// specified.
 fn get_noise_value(
     noise: &mut Billow,
     column: BoundedInt<0, MAX_FLOOR_SIZE>,
@@ -197,7 +200,8 @@ fn get_noise_value(
     }
 }
 
-/// Creates a [`Billow`] using some magic numbers that have been fine tuned to work well.
+/// Creates a [`Billow`] using some magic numbers that have been fine tuned to
+/// work well.
 ///
 /// Don't touch 'em
 fn create_billow(rng: &mut impl rand::Rng) -> Billow {
@@ -216,8 +220,8 @@ fn create_billow(rng: &mut impl rand::Rng) -> Billow {
 //     new_min: I,
 //     new_max: I,
 // ) -> I {
-//     let new_value = ((old_value - old_min) / (old_max - old_min)) * (new_max - new_min) + new_min;
-//     new_value
+//     let new_value = ((old_value - old_min) / (old_max - old_min)) * (new_max
+// - new_min) + new_min;     new_value
 // }
 
 #[cfg(test)]

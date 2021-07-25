@@ -14,12 +14,14 @@ pub fn system() -> impl Into<SystemDescriptor> {
 #[derive(SystemLabel, Debug, PartialEq, Eq, Clone, Hash)]
 pub struct KeyPressHandling;
 
-/// Contains all the keys that are currently pressed and how long they have been pressed.
+/// Contains all the keys that are currently pressed and how long they have been
+/// pressed.
 #[derive(Debug)]
 pub struct KeyPressTime(pub StableHashMap<KeyCode, f32>);
 
 // ANCHOR[id=key_press_handling]
-/// Collects all the keys that are pressed and maps them to how long they have been pressed.
+/// Collects all the keys that are pressed and maps them to how long they have
+/// been pressed.
 pub fn key_press_handling(
     mut key_press_time: ResMut<KeyPressTime>,
     keyboard_input: Res<Input<KeyCode>>,

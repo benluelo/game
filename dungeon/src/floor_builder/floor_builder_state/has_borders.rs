@@ -10,12 +10,15 @@ use crate::{
 
 use super::{has_connections::HasConnections, FloorBuilderState};
 
+/// State that contains the borders around all of the disjointed caves in the floor.
 #[derive(Debug)]
 pub(in crate::floor_builder) struct HasBorders {
+    /// The borders. Each border has a unique [`BorderId`] assigned to it.
     pub(super) borders: Vec<Border>,
 }
 impl FloorBuilderState for HasBorders {}
 
+/// How many iterations there should be when generating the connections between the caves.
 #[derive(Debug, Clone, Copy)]
 pub enum BuildConnectionIterations {
     /// Until there is only 1 scc left (the caves are fully connected).
@@ -29,7 +32,8 @@ pub enum BuildConnectionIterations {
 }
 
 impl FloorBuilder<HasBorders> {
-    /// build bridges between the disjointed caves and the closest cave border point *not* in the border of said disjointed cave
+    /// Builds bridges between the disjointed caves and the closest cave border
+    /// point *not* in the border of the first cave.
     pub(in crate::floor_builder) fn build_connections(
         self,
         iterations: BuildConnectionIterations,
@@ -81,11 +85,13 @@ impl FloorBuilder<HasBorders> {
                 // filter out border points that are either:
                 // - in the current border, or
                 .filter(|(_, &id)| id != current_border.id)
+                //
                 // - in a border the current border is already connected to
                 .filter(|(_, &id)| !already_connected_ids.contains(&id))
                 .flat_map(|(&point, &id)| {
-                    // create a `Connection` between every point in this border and the borders it isn't already connected to
-                    // LINK dungeon/src/lib.rs#connection
+                    // create a `Connection` between every point in this border and the borders it
+                    // isn't already connected to LINK dungeon/src/lib.rs#
+                    // connection
                     current_border
                         .points
                         .iter()
@@ -131,7 +137,8 @@ impl FloorBuilder<HasBorders> {
                     map: self.map,
                     noise_map: self.noise_map,
                     extra: HasConnections {
-                        // remove extra connections from the connections_with_points hashmap (make it into the MSF)
+                        // remove extra connections from the connections_with_points hashmap (make
+                        // it into the MSF)
                         connections: connections_with_points
                             .into_iter()
                             .filter(|&((_, k), (_, v))| msf.contains_edge(k, v))

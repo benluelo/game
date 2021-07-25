@@ -2,19 +2,20 @@ use bounded_int::BoundedInt;
 
 use super::Point;
 
-/// A 1-dimensional type representing a 2-dimensional grid, indexable by a [`Point`].
+/// A 1-dimensional type representing a 2-dimensional grid, indexable by a
+/// [`Point`].
 ///
-/// This trait is implemented for [`Vec<T>`] and [`std::slice`]s, but any indexable
-/// type could be able to implement this as well.
+/// This trait is implemented for [`Vec<T>`] and [`std::slice`]s, but any
+/// indexable type could be able to implement this as well.
 ///
-/// This trait assumes that the underlying implementation uses **row-major** order,
-/// and as such the width of the 2D grid must be provided.
+/// This trait assumes that the underlying implementation uses **row-major**
+/// order, and as such the width of the 2D grid must be provided.
 ///
-/// The equation to find the 1D index in a 2D grid, provided the width of the grid,
-/// is `(row * width) + column`.
+/// The equation to find the 1D index in a 2D grid, provided the width of the
+/// grid, is `(row * width) + column`.
 ///
-/// For a grid with width = 4 and height = 3, one could think of it as being represented
-/// internally like this:
+/// For a grid with width = 4 and height = 3, one could think of it as being
+/// represented internally like this:
 /// ```txt
 /// [a, b, c, d, e, f, g, h, i, j, k, l]
 ///  ^--------^  ^--------^  ^--------^

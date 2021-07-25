@@ -1,7 +1,7 @@
 #![warn(missing_docs, clippy::missing_docs_in_private_items)]
 
 //! Leverages const generics to enforce compile time bounds on integers.
-//! 
+//!
 //! **Note:** due to current limitations in Rust, the [`BoundedInt`] type uses
 //! an [`i32`] behind the scenes. This could be wasteful if you limit the bounds
 //! to smaller than, say, an [`i16`], or may not be enough if you need a number
@@ -20,7 +20,7 @@ pub mod ops;
 ///
 /// TODO: Examples
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct BoundedInt</* T: Integer,  */ const LOW: i32, const HIGH: i32>(pub(crate) i32);
+pub struct BoundedInt</* T: Integer, */ const LOW: i32, const HIGH: i32>(pub(crate) i32);
 
 /// Error returned when trying to convert an [`i32`] to a [`BoundedInt`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -35,7 +35,8 @@ pub enum BoundedIntError {
     TooLow(i32),
 }
 
-// TODO: Move assertions to where clause once const_evaluatable_checked is stabilized
+// TODO: Move assertions to where clause once const_evaluatable_checked is
+// stabilized
 impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     /// The lower bounds of the `BoundedInt`, inclusive.
     pub const LOW: i32 = LOW;
@@ -217,7 +218,7 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     ///
     /// // type inference makes this very simple to call
     /// requires_larger_bounds(small_bounds.expand_upper());
-    ///```
+    /// ```
     #[must_use = "`expand_upper` does not mutate the original value"]
     pub fn expand_upper<const HIGHER: i32>(self) -> BoundedInt<{ LOW }, { HIGHER }> {
         assert!(
@@ -240,7 +241,7 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     ///
     /// // type inference makes this very simple to call
     /// requires_larger_bounds(small_bounds.expand_lower());
-    ///```
+    /// ```
     #[must_use = "`expand_lower` does not mutate the original value"]
     pub fn expand_lower<const LOWER: i32>(self) -> BoundedInt<{ LOWER }, { HIGH }> {
         assert!(
@@ -263,7 +264,7 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     ///
     /// // type inference makes this very simple to call
     /// requires_larger_bounds(small_bounds.expand_bounds());
-    ///```
+    /// ```
     #[must_use = "`expand_bounds` does not mutate the original value"]
     pub fn expand_bounds<const LOWER: i32, const HIGHER: i32>(
         self,
@@ -289,13 +290,15 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
         BoundedInt(self.0)
     }
 
-    /// Performs subtraction that saturates at the numeric bounds instead of overflowing.
+    /// Performs subtraction that saturates at the numeric bounds instead of
+    /// overflowing.
     #[must_use = "`saturating_sub` does not mutate the original value"]
     pub fn saturating_sub(self, rhs: i32) -> Self {
         Self::new_clamped(self.0 - rhs)
     }
 
-    /// Performs addition that saturates at the numeric bounds instead of overflowing.
+    /// Performs addition that saturates at the numeric bounds instead of
+    /// overflowing.
     #[must_use = "`saturating_add` does not mutate the original value"]
     pub fn saturating_add(self, rhs: i32) -> Self {
         Self::new_clamped(self.0 + rhs)

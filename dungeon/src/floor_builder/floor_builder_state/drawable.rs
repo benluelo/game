@@ -1,6 +1,6 @@
-use crate::floor_builder::filled::Filled;
 use crate::{
     connection_path::{ConnectionPath, ConnectionPathLength},
+    floor_builder::filled::Filled,
     point_index::PointIndex,
     DungeonTile, FloorBuilder, Point,
 };
@@ -16,8 +16,20 @@ pub(in crate::floor_builder) struct Drawable {
 impl FloorBuilderState for Drawable {}
 
 impl FloorBuilder<Drawable> {
+    /// Draws the current state of the [`FloorBuilder`] with the provided
+    /// function.
+    ///
+    /// `draw_with` takes 3 parameters:
+    /// The first is true if the point is the first in the path, the second is
+    /// true if the point is the last in the path, and the third argument is
+    /// the point itself. The function is expected to return a
+    /// [`DungeonTile`] that will be placed at the provided point.
+    ///
+    /// Note that the first and second arguments are not mutually exclisive.
     pub(in crate::floor_builder) fn draw(
         mut self,
+        // TODO: Make a more explicit type for the first tow arguments (`enum PositionInPath`
+        // perhaps?)
         draw_with: fn(
             // is_first
             bool,

@@ -81,7 +81,8 @@ fn setup(
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     commands.insert_resource(Materials {
         empty_material: materials.add(
-            /* Color::WHITE.into() */ server.load("empty.png").into(),
+            // Color::WHITE.into()
+            server.load("empty.png").into(),
         ),
         wall_material: materials.add(Color::BLACK.into()),
         secret_door_material: materials.add(Color::RED.into()),
@@ -125,7 +126,8 @@ impl Index<DungeonTile> for Materials {
     }
 }
 
-/// The internal position of something in the world; where in the world it can be considered to be.
+/// The internal position of something in the world; where in the world it can
+/// be considered to be.
 pub struct Position(Point);
 
 fn spawn_player_and_board(
@@ -210,7 +212,8 @@ fn camera_player_tracking(
     set.q1_mut().single_mut().unwrap().translation = set.q0().single().unwrap().translation;
 }
 
-/// Moves the player by changing it's internal [`dungeon::Point`] according to the input.
+/// Moves the player by changing it's internal [`dungeon::Point`] according to
+/// the input.
 fn player_movement_input_handling(
     key_press_time: ResMut<KeyPressTime>,
     dungeon: Res<Dungeon>,

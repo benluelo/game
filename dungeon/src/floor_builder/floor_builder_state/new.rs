@@ -7,11 +7,13 @@ use bounded_int::BoundedInt;
 
 use super::{blank::Blank, has_borders::BuildConnectionIterations, FloorBuilderState};
 
+/// The initial state of the floor builder. Entry point to the state machine.
 #[derive(Debug)]
 pub struct New {}
 impl FloorBuilderState for New {}
 
 impl FloorBuilder<New> {
+    /// Creates a new floor builder with the provided values.
     pub(in crate) fn create(
         id: FloorId,
         width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,

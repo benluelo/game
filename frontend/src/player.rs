@@ -11,10 +11,11 @@ pub enum PlayerState {
     Still,
 }
 
-// REVIEW: Maybe make this a generic `Direction`, not tied to the player specifically?
-//         It would make the code a bit more DRY, but might mess with parallelization
-//         within bevy, since we need mutable access to the `PlayerDirection` every
-//         frame LINK frontend/src/key_press_handling.rs#key_press_handling
+// REVIEW: Maybe make this a generic `Direction`, not tied to the player
+// specifically?         It would make the code a bit more DRY, but might mess
+// with parallelization         within bevy, since we need mutable access to the
+// `PlayerDirection` every         frame LINK
+// frontend/src/key_press_handling.rs#key_press_handling
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum PlayerDirection {
     Up,

@@ -13,11 +13,14 @@ use crate::{
 };
 
 use super::{has_secret_connections::HasSecretPassages, FloorBuilderState};
+
+/// A [`FloorBuilder`] that has run the cellular automata on it's map; all the rough edges of the caves have been smoothed out.
 #[derive(Debug)]
 pub(in crate::floor_builder) struct Smoothed {}
 impl FloorBuilderState for Smoothed {}
 
 impl FloorBuilder<Smoothed> {
+    /// Finds the borders around all of the caves in the [`FloorBuilder`], leaving them in the [`HasBorders`] state.
     pub(in crate::floor_builder) fn get_cave_borders(self) -> FloorBuilder<HasBorders> {
         let mut already_visited = vec![
             false;
@@ -35,14 +38,16 @@ impl FloorBuilder<Smoothed> {
                     column: Column::new(column),
                     row: Row::new(row),
                 };
-                // if the point has already been visited (by either the main loop or the cave searching) then continue looping through the map
+                // if the point has already been visited (by either the main loop or the cave
+                // searching) then continue looping through the map
                 if *already_visited.at(point, self.width) {
                     continue 'rows;
                 }
                 // otherwise, mark the point as visited
                 *already_visited.at_mut(point, self.width) = true;
 
-                // if there's an empty space at the point, BFS to find the border of the cave (no diagonals)
+                // if there's an empty space at the point, BFS to find the border of the cave
+                // (no diagonals)
                 if self.map.at(point, self.width).is_empty() {
                     let mut border = HashSet::new();
 
@@ -96,6 +101,7 @@ impl FloorBuilder<Smoothed> {
         }
     }
 
+    /// Adds secret passages to the map between all of the remaining disjointed caves.
     pub(in crate::floor_builder) fn check_for_secret_passages(
         self,
     ) -> FloorBuilder<HasSecretPassages> {

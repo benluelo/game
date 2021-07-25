@@ -7,11 +7,13 @@ use crate::{point_index::PointIndex, Column, DungeonTile, FloorBuilder, Point, R
 
 use super::{filled::Filled, FloorBuilderState};
 
+/// State for the builder right after the secret passages have been placed.
 pub(in crate::floor_builder) struct HasSecretPassages;
 
 impl FloorBuilderState for HasSecretPassages {}
 
 impl FloorBuilder<HasSecretPassages> {
+    /// Places the treasure chests on the map.
     pub(in crate::floor_builder) fn place_treasure_chests(mut self) -> FloorBuilder<Filled> {
         let mut rng = thread_rng();
         let mut empty_points_sorted_by_noise = self

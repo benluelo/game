@@ -11,16 +11,21 @@ use crate::{
 
 use super::{drawable::Drawable, FloorBuilderState};
 
+/// State that contains the borders and connections between them.
+// TODO: This could use a better name
 #[derive(Debug, Default)]
 pub(in crate::floor_builder) struct HasConnections {
+    /// The connections between the borders, mapping one [`Point`] and a [`BorderId`] to another.
     pub(in crate::floor_builder) connections: HashMap<(Point, BorderId), (Point, BorderId)>,
+    /// The borders of the floor, indexable by their [`BorderId`].
     pub(in crate::floor_builder) borders: HashMap<BorderId, Border>,
 }
 impl FloorBuilderState for HasConnections {}
 
 impl FloorBuilder<HasConnections> {
-    /// takes the connections from [`FloorBuilder::build_connections`] and traces paths
-    /// between them, leaving the paths in the `to_draw` state of `FloorBuilder<Drawable>`.
+    /// Takes the connections from [`FloorBuilder<HasBorders>::build_connections`] and
+    /// traces paths between them, leaving the paths in the `to_draw` state
+    /// of [`FloorBuilder<Drawable>`].
     pub(in crate::floor_builder) fn trace_connection_paths(
         self,
         wide: bool,
@@ -86,7 +91,7 @@ impl FloorBuilder<HasConnections> {
                                                 // .collect::<Vec<_>>(),
                                                 // false => {
                                                 self.get_legal_neighbors(point)
-                                                /* .collect::<Vec<_>>() */
+                                                // .collect::<Vec<_>>()
                                                 // }
                                                 // }
                                             })
