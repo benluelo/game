@@ -7,16 +7,16 @@ use bounded_int::{
 
 use crate::floor_builder::MAX_FLOOR_SIZE;
 
-/// A point somewhere in a [`Floor`].
+/// A point somewhere in a [`Floor`][crate::Floor].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Point {
     /// How many columns across the point is.
     ///
-    /// Corresponds to the width of the [`Floor`].
+    /// Corresponds to the width of the [`Floor`][crate::Floor].
     pub column: Column,
     /// How many rows down the point is.
     ///
-    /// Corresponds to the height of the [`Floor`].
+    /// Corresponds to the height of the [`Floor`][crate::Floor].
     pub row: Row,
 }
 

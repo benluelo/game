@@ -6,8 +6,12 @@ use crate::{border::BorderId, Point};
 #[derive(Debug, Clone)]
 pub(crate) struct ConnectionPath {
     /// The [`BorderId`] of the [`Border`] that the path starts at.
+    ///
+    /// [`Border`]: crate::border::Border
     pub(crate) start_border_id: BorderId,
     /// The [`BorderId`] of the [`Border`] that the path ends at.
+    ///
+    /// [`Border`]: crate::border::Border
     pub(crate) end_border_id: BorderId,
     /// The path itself. See the type-level docs for more information.
     pub(crate) path: ConnectionPathLength,
@@ -55,10 +59,14 @@ pub(crate) enum ConnectionPathLength {
     /// Paths of length 2 have a start and an end [`Point`].
     Length2 {
         /// The start [`Point`]. This is the point in the
-        /// [`ConnectionPath::start_border_id`] [`Border`].
+        /// [`ConnectionPath.start_border_id`] [`Border`].
+        ///
+        /// [`Border`]: crate::border::Border
         start: Point,
         /// The end [`Point`]. This is the point in the
-        /// [`ConnectionPath::end_border_id`] [`Border`].
+        /// [`ConnectionPath.end_border_id`] [`Border`].
+        ///
+        /// [`Border`]: crate::border::Border
         end: Point,
     },
     /// All other paths have a start, an end, and 1 or more [`Point`]s in
@@ -66,9 +74,13 @@ pub(crate) enum ConnectionPathLength {
     Length3Plus {
         /// The start [`Point`]. This is the point in the
         /// [`ConnectionPath::start_border_id`] [`Border`].
+        ///
+        /// [`Border`]: crate::border::Border
         start: Point,
         /// The end [`Point`]. This is the point in the
         /// [`ConnectionPath::end_border_id`] [`Border`].
+        ///
+        /// [`Border`]: crate::border::Border
         end: Point,
         /// the points of the path between the start and the end, excluding
         /// start and end.

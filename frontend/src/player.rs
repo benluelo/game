@@ -29,7 +29,7 @@ impl PlayerDirection {
     /// along the z axis. Used for changing which direction the player is
     /// facing.
     ///
-    /// ```no-run
+    /// ```txt
     ///            0
     ///            ^
     ///            UP
