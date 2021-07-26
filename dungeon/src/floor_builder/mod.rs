@@ -113,6 +113,14 @@ impl<S: Smoothable> FloorBuilder<S> {
 }
 
 impl<S: FloorBuilderState> FloorBuilder<S> {
+    /// Dumps the current state of the builder to stdout.
+    //
+    /// for use in debugging only
+    fn inspect(self) -> Self {
+        dbg!(S::TYPE_NAME);
+        self
+    }
+
     /// Creates a [`gif::Frame`] from the current state of the floor builder,
     /// storing it in [`FloorBuilder::frames`].
     ///

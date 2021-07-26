@@ -7,9 +7,15 @@
 //!
 //! # Examples
 //! ```rust
+//! use dungeon::{Dungeon, DungeonType};
+//! use std::{
+//!     convert::TryInto,
+//!     num::NonZeroU16
+//! };
+//!
 //! let _ = Dungeon::new(
-//!     height.try_into().unwrap(),
-//!     width.try_into().unwrap(),
+//!     150.try_into().unwrap(),
+//!     100.try_into().unwrap(),
 //!     NonZeroU16::new(10).unwrap(),
 //!     DungeonType::Cave,
 //!     false,
@@ -76,9 +82,15 @@ struct Connection {
 ///
 /// # Examples
 /// ```rust
+/// use dungeon::{Dungeon, DungeonType};
+/// use std::{
+///     convert::TryInto,
+///     num::NonZeroU16
+/// };
+///
 /// let _ = Dungeon::new(
-///     height.try_into().unwrap(),
-///     width.try_into().unwrap(),
+///     100.try_into().unwrap(),
+///     150.try_into().unwrap(),
 ///     NonZeroU16::new(10).unwrap(),
 ///     DungeonType::Cave,
 ///     false,
@@ -226,7 +238,10 @@ impl Dungeon {
             dungeon_type,
             floors: (0_u16..floor_count.get())
                 // .into_par_iter()
-                .map(|id| FloorBuilder::create(FloorId(id), width, height, gif_output))
+                .map(|id| {
+                    println!("floor {}", id);
+                    FloorBuilder::create(FloorId(id), width, height, gif_output)
+                })
                 .collect(),
         }
     }

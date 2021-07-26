@@ -8,9 +8,12 @@ use crate::{point_index::PointIndex, Column, DungeonTile, FloorBuilder, Point, R
 use super::{filled::Filled, FloorBuilderState};
 
 /// State for the builder right after the secret passages have been placed.
+#[derive(Debug)]
 pub(in crate::floor_builder) struct HasSecretPassages;
 
-impl FloorBuilderState for HasSecretPassages {}
+impl FloorBuilderState for HasSecretPassages {
+    const TYPE_NAME: &'static str = "HasSecretPassages";
+}
 
 impl FloorBuilder<HasSecretPassages> {
     /// Places the treasure chests on the map.
@@ -55,7 +58,7 @@ impl FloorBuilder<HasSecretPassages> {
                         DungeonTile::TreasureChest { contents: () };
                     amount.next();
                 }
-                dbg!(&self.noise_map.at(point, self.width));
+                // dbg!(&self.noise_map.at(point, self.width));
             } else {
                 break;
             }

@@ -84,13 +84,13 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     ///
     /// # Examples
     /// ```rust
-    /// use game::bounded_int::BoundedInt;
+    /// use bounded_int::BoundedInt;
     ///
     /// let start = BoundedInt::<10, 15>::new(10).unwrap();
     /// let end = BoundedInt::<10, 15>::new(15).unwrap();
     ///
     /// assert_eq!(
-    ///     start.range_to(&end).collect::<Vec<_>>(),
+    ///     start.range_to(end).collect::<Vec<_>>(),
     ///     &[
     ///         BoundedInt::<10, 15>::new(10).unwrap(),
     ///         BoundedInt::<10, 15>::new(11).unwrap(),
@@ -114,13 +114,13 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     ///
     /// # Examples
     /// ```rust
-    /// use game::bounded_int::BoundedInt;
+    /// use bounded_int::BoundedInt;
     ///
     /// let start = BoundedInt::<10, 15>::new(10).unwrap();
     /// let end = BoundedInt::<10, 15>::new(15).unwrap();
     ///
     /// assert_eq!(
-    ///     end.range_from(&start).collect::<Vec<_>>(),
+    ///     end.range_from(start).collect::<Vec<_>>(),
     ///     &[
     ///         BoundedInt::<10, 15>::new(10).unwrap(),
     ///         BoundedInt::<10, 15>::new(11).unwrap(),
@@ -145,13 +145,13 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     ///
     /// # Examples
     /// ```rust
-    /// use game::bounded_int::BoundedInt;
+    /// use bounded_int::BoundedInt;
     ///
     /// let start = BoundedInt::<10, 15>::new(10).unwrap();
     /// let end = BoundedInt::<10, 15>::new(15).unwrap();
     ///
     /// assert_eq!(
-    ///     start.range_to_inclusive(&end).collect::<Vec<_>>(),
+    ///     start.range_to_inclusive(end).collect::<Vec<_>>(),
     ///     &[
     ///         BoundedInt::<10, 15>::new(10).unwrap(),
     ///         BoundedInt::<10, 15>::new(11).unwrap(),
@@ -178,13 +178,13 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     ///
     /// # Examples
     /// ```rust
-    /// use game::bounded_int::BoundedInt;
+    /// use bounded_int::BoundedInt;
     ///
     /// let start = BoundedInt::<10, 15>::new(10).unwrap();
     /// let end = BoundedInt::<10, 15>::new(15).unwrap();
     ///
     /// assert_eq!(
-    ///     end.range_from_inclusive(&start).collect::<Vec<_>>(),
+    ///     end.range_from_inclusive(start).collect::<Vec<_>>(),
     ///     &[
     ///         BoundedInt::<10, 15>::new(10).unwrap(),
     ///         BoundedInt::<10, 15>::new(11).unwrap(),
@@ -210,7 +210,7 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     /// Raises the upper bounds of the `BoundedInt` to `HIGHER`.
     /// # Examples
     /// ```rust
-    /// use game::bounded_int::BoundedInt;
+    /// use bounded_int::BoundedInt;
     ///
     /// let small_bounds = BoundedInt::<10, 15>::new(10).unwrap();
     ///
@@ -233,7 +233,7 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     /// Increases the lower bounds of the `BoundedInt` to `LOWER`.
     /// # Examples
     /// ```rust
-    /// use game::bounded_int::BoundedInt;
+    /// use bounded_int::BoundedInt;
     ///
     /// let small_bounds = BoundedInt::<10, 15>::new(10).unwrap();
     ///
@@ -256,7 +256,7 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     /// Expands the bounds of the `BoundedInt` to `LOWER` and `HIGHER`.
     /// # Examples
     /// ```rust
-    /// use game::bounded_int::BoundedInt;
+    /// use bounded_int::BoundedInt;
     ///
     /// let small_bounds = BoundedInt::<10, 15>::new(10).unwrap();
     ///

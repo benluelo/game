@@ -11,7 +11,10 @@ use super::{FloorBuilderState, Smoothable};
 /// builder, there is still likely steps remaining until the builder is done.
 #[derive(Debug)]
 pub(in crate::floor_builder) struct Filled {}
-impl FloorBuilderState for Filled {}
+
+impl FloorBuilderState for Filled {
+    const TYPE_NAME: &'static str = "Filled";
+}
 impl Smoothable for Filled {}
 
 // impl FloorBuilder<Filled> {

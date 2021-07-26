@@ -13,7 +13,10 @@ pub(in crate::floor_builder) struct Drawable {
     /// The connection paths to be drawn.
     pub(super) to_draw: Vec<ConnectionPath>,
 }
-impl FloorBuilderState for Drawable {}
+impl FloorBuilderState for Drawable {
+    const TYPE_NAME: &'static str = "Drawable";
+
+}
 
 impl FloorBuilder<Drawable> {
     /// Draws the current state of the [`FloorBuilder`] with the provided

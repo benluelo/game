@@ -2,9 +2,13 @@
 //! own state,  and the `impl`s found in each module represent the valid
 //! transitions for each state.
 
+use std::fmt::Debug;
+
 /// Marker trait for possible states for a floor builder to be in, along with
 /// their associated data.
-pub trait FloorBuilderState {}
+pub trait FloorBuilderState: Debug {
+    const TYPE_NAME: &'static str;
+}
 
 /// Marker trait for floor builder states that can be [`FloorBuilder::smoothed`]
 pub trait Smoothable: FloorBuilderState {}
@@ -32,6 +36,7 @@ pub(in crate::floor_builder) mod has_secret_connections;
 /// Original state of the [`FloorBuilder`]. Entry point to the state machine.
 pub(in crate) mod new;
 
+mod random_filled;
 /// State that represents a [`FloorBuilder`] that has has the cellular automata
 /// run on it, smoothing out the edges of the caves.
 pub(in crate::floor_builder) mod smoothed;

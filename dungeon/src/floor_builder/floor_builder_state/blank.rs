@@ -5,28 +5,31 @@ use std::{
 
 use bounded_int::BoundedInt;
 use noise::{Billow, MultiFractal, NoiseFn, Seedable};
-use pathfinding::prelude::dijkstra;
 use rand::{thread_rng, Rng};
 
 use crate::{
-    distance,
-    floor_builder::{MAX_FLOOR_SIZE, MIN_FLOOR_SIZE, RANDOM_FILL_WALL_PERCENT_CHANCE},
+    floor_builder::{
+        floor_builder_state::random_filled::RandomFilled, MAX_FLOOR_SIZE, MIN_FLOOR_SIZE,
+        RANDOM_FILL_WALL_PERCENT_CHANCE,
+    },
     point_index::PointIndex,
     Column, DungeonTile, FloorBuilder, Point, Row,
 };
 
-use super::{filled::Filled, FloorBuilderState};
+use super::FloorBuilderState;
 
 /// A blank floor builder, with all values in the floor map and the noise map
 /// set to their default.
 #[derive(Debug)]
 pub(in crate::floor_builder) struct Blank {}
-impl FloorBuilderState for Blank {}
+impl FloorBuilderState for Blank {
+    const TYPE_NAME: &'static str = "Blank";
+}
 
 impl FloorBuilder<Blank> {
     /// TODO: Split this function into two parts, `random_fill` and
     /// `trace_entrance_exit` (or something along those lines)
-    pub(in crate::floor_builder) fn random_fill(mut self) -> FloorBuilder<Filled> {
+    pub(in crate::floor_builder) fn random_fill(mut self) -> FloorBuilder<RandomFilled> {
         let mut rng = thread_rng();
 
         let mut noise = create_billow(&mut rng);
@@ -68,88 +71,8 @@ impl FloorBuilder<Blank> {
         // original noisy walls map
         self.frame_from_current_state(100);
 
-        let mut rng = thread_rng();
-
-        // ANCHOR: dijkstra
-        // find a path through the noise map and apply the found path to the walls map
-        let start = Point {
-            row: Row::new(
-                rng.gen_range(1..(self.height.as_unbounded() - 1))
-                    .try_into()
-                    .unwrap(),
-            ),
-            column: Column::new(
-                rng.gen_range(1..(self.width.as_unbounded() - 1))
-                    .try_into()
-                    .unwrap(),
-            ),
-        };
-
-        let end = loop {
-            let larger_dimension = if self.width > self.height {
-                self.width
-            } else {
-                self.height
-            };
-            let maybe_end = Point {
-                row: Row::new(
-                    rng.gen_range(1..(self.height.as_unbounded() - 1))
-                        .try_into()
-                        .unwrap(),
-                ),
-                column: Column::new(
-                    rng.gen_range(1..(self.width.as_unbounded() - 1))
-                        .try_into()
-                        .unwrap(),
-                ),
-            };
-            let dist = distance(maybe_end, start);
-
-            #[allow(clippy::redundant_else)] // I prefer the explicitness here
-            if dist > (larger_dimension.as_unbounded() as f64 / 2.0)
-                && dist < (larger_dimension.as_unbounded() as f64)
-            {
-                break maybe_end;
-            } else {
-                continue;
-            }
-        };
-
-        let (found_path, _) = dijkstra(
-            &start,
-            |&point| {
-                self.get_legal_neighbors(point)
-                    .map(|p| (p, *self.noise_map.at(p, self.width) as u32))
-            },
-            |&point| !self.is_out_of_bounds(point) && point == end,
-        )
-        .expect("no path found");
-
-        *self.map.at_mut(start, self.width) = DungeonTile::Entrance;
-        *self.map.at_mut(end, self.width) = DungeonTile::Exit;
-
-        for &point in &found_path {
-            if self.map.at(point, self.width).is_solid() && point != start && point != end {
-                *self.map.at_mut(point, self.width) = DungeonTile::Empty;
-            }
-            for neighbor in self
-                .get_legal_neighbors_down_and_right(point)
-                .collect::<Vec<_>>()
-            {
-                if self.map.at(neighbor, self.width).is_solid() && point != start && point != end {
-                    *self.map.at_mut(neighbor, self.width) = DungeonTile::Empty;
-                }
-            }
-            self.frame_from_current_state(1);
-        }
-
-        assert_eq!(self.map.at(start, self.width), &DungeonTile::Entrance);
-        assert_eq!(self.map.at(end, self.width), &DungeonTile::Exit);
-
-        self.frame_from_current_state(100);
-
         FloorBuilder {
-            extra: Filled {},
+            extra: RandomFilled {},
             height: self.height,
             width: self.width,
             map: self.map,

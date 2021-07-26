@@ -9,7 +9,7 @@ fn test_dungeon_creation() {
         150.try_into().unwrap(),
         NonZeroU16::new(10).unwrap(),
         DungeonType::Cave,
-        true,
+        false,
     );
 
     std::fs::write("dungeon_test.gif", d.to_gif()).unwrap();

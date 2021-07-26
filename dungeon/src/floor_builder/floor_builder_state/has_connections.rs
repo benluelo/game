@@ -21,7 +21,9 @@ pub(in crate::floor_builder) struct HasConnections {
     /// The borders of the floor, indexable by their [`BorderId`].
     pub(in crate::floor_builder) borders: HashMap<BorderId, Border>,
 }
-impl FloorBuilderState for HasConnections {}
+impl FloorBuilderState for HasConnections {
+    const TYPE_NAME: &'static str = "HasConnections";
+}
 
 impl FloorBuilder<HasConnections> {
     /// Takes the connections from

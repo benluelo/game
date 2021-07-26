@@ -17,7 +17,9 @@ pub(in crate::floor_builder) struct HasBorders {
     /// The borders. Each border has a unique [`BorderId`] assigned to it.
     pub(super) borders: Vec<Border>,
 }
-impl FloorBuilderState for HasBorders {}
+impl FloorBuilderState for HasBorders {
+    const TYPE_NAME: &'static str = "HasBorders";
+}
 
 /// How many iterations there should be when generating the connections between
 /// the caves.
@@ -87,7 +89,7 @@ impl FloorBuilder<HasBorders> {
                 // filter out border points that are either:
                 // - in the current border, or
                 .filter(|(_, &id)| id != current_border.id)
-                // 
+                //
                 // - in a border the current border is already connected to
                 .filter(|(_, &id)| !already_connected_ids.contains(&id))
                 .flat_map(|(&point, &id)| {
@@ -120,9 +122,9 @@ impl FloorBuilder<HasBorders> {
             // strongly connected components
             let sccs = kosaraju_scc(&connected_borders_graph);
 
-            let should_return = match iterations {
+            let should_return = match dbg!(iterations) {
                 // if there is only one scc, we're done here
-                BuildConnectionIterations::FullyConnect => sccs.len() == 1,
+                BuildConnectionIterations::FullyConnect => dbg!(sccs.len()) == 1,
                 // if we've iterated enough times, return
                 BuildConnectionIterations::Finite(amount) => acc == amount as usize,
                 // if the amount of sccs is less than or equal to the amount requested, return

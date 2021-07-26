@@ -18,7 +18,10 @@ use super::{has_secret_connections::HasSecretPassages, FloorBuilderState};
 /// rough edges of the caves have been smoothed out.
 #[derive(Debug)]
 pub(in crate::floor_builder) struct Smoothed {}
-impl FloorBuilderState for Smoothed {}
+
+impl FloorBuilderState for Smoothed {
+    const TYPE_NAME: &'static str = "Smoothed";
+}
 
 impl FloorBuilder<Smoothed> {
     /// Finds the borders around all of the caves in the [`FloorBuilder`],
@@ -108,38 +111,42 @@ impl FloorBuilder<Smoothed> {
     pub(in crate::floor_builder) fn check_for_secret_passages(
         self,
     ) -> FloorBuilder<HasSecretPassages> {
+        println!("starting secret passages search");
         let mut self_with_borders = self.get_cave_borders();
 
-        loop {
-            // if there is more than 1 cave (border), find secret passages
-            if self_with_borders.extra.borders.len() > 1 {
-                self_with_borders = self_with_borders
-                    .build_connections(BuildConnectionIterations::FullyConnect)
-                    .trace_connection_paths(false, false)
-                    .draw(|is_first, is_last, _| {
-                        if is_first || is_last {
-                            DungeonTile::SecretDoor {
-                                requires_key: true,
-                                is_open: false,
-                            }
-                        } else {
-                            DungeonTile::SecretPassage
+        dbg!(self_with_borders.extra.borders.len());
+        // if there is more than 1 cave (border), find secret passages
+        if self_with_borders.extra.borders.len() > 1 {
+            self_with_borders = self_with_borders
+                .build_connections(BuildConnectionIterations::FullyConnect)
+                .inspect()
+                .trace_connection_paths(false, false)
+                .inspect()
+                .draw(|is_first, is_last, _| {
+                    if is_first || is_last {
+                        DungeonTile::SecretDoor {
+                            requires_key: true,
+                            is_open: false,
                         }
-                    })
-                    .smoothen(0, |_| false)
-                    .get_cave_borders();
-            } else {
-                let new_self = self_with_borders;
-                break FloorBuilder {
-                    height: new_self.height,
-                    width: new_self.width,
-                    map: new_self.map,
-                    noise_map: new_self.noise_map,
-                    extra: HasSecretPassages {},
-                    frames: new_self.frames,
-                    id: new_self.id,
-                };
-            }
+                    } else {
+                        DungeonTile::SecretPassage
+                    }
+                })
+                .smoothen(0, |_| false)
+                .inspect()
+                .get_cave_borders()
+                .inspect()
+        }
+
+        let new_self = self_with_borders;
+        FloorBuilder {
+            height: new_self.height,
+            width: new_self.width,
+            map: new_self.map,
+            noise_map: new_self.noise_map,
+            extra: HasSecretPassages {},
+            frames: new_self.frames,
+            id: new_self.id,
         }
     }
 }

@@ -62,8 +62,9 @@ use super::Point;
 /// ```rust
 /// use std::convert::TryInto;
 ///
-/// use game::{
-///     bounded_int::BoundedInt,
+/// use bounded_int::BoundedInt;
+///
+/// use dungeon::{
 ///     point_index::PointIndex,
 ///     Point, Column, Row,
 /// };
