@@ -29,7 +29,7 @@ fn main() {
             DungeonType::Cave,
             false,
         ))
-        // TODO: Make this a component of `Player`.
+        // TODO: Make this a component of `Player`, not a resource.
         .insert_resource(PlayerState::Still)
         .add_plugins(DefaultPlugins)
         // .insert_resource(Msaa { samples: 4 })

@@ -7,6 +7,8 @@ use std::fmt::Debug;
 /// Marker trait for possible states for a floor builder to be in, along with
 /// their associated data.
 pub trait FloorBuilderState: Debug {
+    /// The name of the type. Used to allow for reflection (of sorts) when inspecting
+    /// the floor builder state machine.
     const TYPE_NAME: &'static str;
 }
 
@@ -52,6 +54,8 @@ pub(in crate::floor_builder) mod has_secret_connections;
 /// [`FloorBuilder`]: crate::floor_builder::FloorBuilder
 pub(in crate) mod new;
 
+/// First "real" state of the builder, where the noise map and tiles map have
+/// both been randomly filled.
 pub(in crate::floor_builder) mod random_filled;
 
 /// State that represents a [`FloorBuilder`] that has has the cellular automata
