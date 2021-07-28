@@ -18,6 +18,7 @@ pub(in crate::floor_builder) struct HasConnections {
     /// The connections between the borders, mapping one [`Point`] and a
     /// [`BorderId`] to another.
     pub(in crate::floor_builder) connections: HashMap<(Point, BorderId), (Point, BorderId)>,
+
     /// The borders of the floor, indexable by their [`BorderId`].
     pub(in crate::floor_builder) borders: HashMap<BorderId, Border>,
 }

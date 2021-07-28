@@ -33,6 +33,14 @@ pub struct Row(pub(super) BoundedInt<0, { MAX_FLOOR_SIZE }>);
 pub struct Column(pub(super) BoundedInt<0, { MAX_FLOOR_SIZE }>);
 
 impl Point {
+    /// Returns the euclidean distance between two points.
+    fn distance(self, to: Point) -> f64 {
+        (((self.row.get().as_unbounded() - to.row.get().as_unbounded()).pow(2)
+            + (self.column.get().as_unbounded() - to.column.get().as_unbounded()).pow(2))
+            as f64)
+            .sqrt()
+    }
+
     /// Adds the provided value to the row, saturating on the numeric bounds
     /// instead of overflowing or panicking.
     #[must_use]

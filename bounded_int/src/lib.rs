@@ -18,7 +18,32 @@ pub mod ops;
 
 /// An integer bound between two points, inclusive on both ends.
 ///
-/// TODO: Examples
+/// # Examples
+///
+/// ```rust
+/// use std::ops::{Add, Sub};
+/// use bounded_int::{BoundedInt, BoundedIntError};
+///
+/// let b = BoundedInt::<-10, 10>::new(0).unwrap();
+///
+/// assert_eq!(b.add(5).unwrap(), BoundedInt::<-10, 10>::new(5).unwrap());
+///
+/// assert_eq!(b.sub(5).unwrap(), BoundedInt::<-10, 10>::new(-5).unwrap());
+///
+/// assert_eq!(
+///     b.saturating_add(100),
+///     BoundedInt::<-10, 10>::new(10).unwrap()
+/// );
+///
+/// assert_eq!(
+///     b.saturating_sub(100),
+///     BoundedInt::<-10, 10>::new(-10).unwrap()
+/// );
+///
+/// let invalid = BoundedInt::<-10, 10>::new(100);
+///
+/// assert_eq!(invalid, Err(BoundedIntError::TooHigh(100)));
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct BoundedInt</* T: Integer, */ const LOW: i32, const HIGH: i32>(pub(crate) i32);
 

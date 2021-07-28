@@ -29,8 +29,6 @@ fn main() {
             DungeonType::Cave,
             false,
         ))
-        // TODO: Make this a component of `Player`, not a resource.
-        .insert_resource(PlayerState::Still)
         .add_plugins(DefaultPlugins)
         // .insert_resource(Msaa { samples: 4 })
         .insert_resource(KeyPressTime(Default::default()))
@@ -143,6 +141,7 @@ fn spawn_player_and_board(
                 .spawn_bundle(player_sprite_bundle(&materials, point, floor))
                 .insert(Player)
                 .insert(PlayerDirection::Up)
+                .insert(PlayerState::Still)
                 .insert(Position(point));
         }
 
@@ -159,7 +158,7 @@ fn smooth_player_movement(
     time: Res<Time>,
     dungeon: Res<Dungeon>,
     player_direction: Query<&PlayerDirection, With<Player>>,
-    mut player_state: ResMut<PlayerState>,
+    mut player_state: Query<&mut PlayerState, With<Player>>,
     mut player_position: Query<&mut Position, With<Player>>,
     mut player_transform: Query<&mut Transform, With<Player>>,
 ) {
@@ -172,6 +171,8 @@ fn smooth_player_movement(
 
     let mut done_moving = false;
     // dbg!(&*player_state);
+    let mut player_state = player_state.single_mut().unwrap();
+
     match *player_state {
         PlayerState::Moving {
             destination,
@@ -217,11 +218,13 @@ fn camera_player_tracking(
 fn player_movement_input_handling(
     key_press_time: ResMut<KeyPressTime>,
     dungeon: Res<Dungeon>,
-    mut player_state: ResMut<PlayerState>,
+    mut player_state: Query<&mut PlayerState, With<Player>>,
     player_position: Query<&Position, With<Player>>,
     mut player_direction: Query<&mut PlayerDirection, With<Player>>,
 ) {
     let floor = &dungeon.floors[0];
+
+    let mut player_state = player_state.single_mut().unwrap();
 
     if let Ok(player_position) = player_position.single() {
         if matches!(*player_state, PlayerState::Moving { .. }) {

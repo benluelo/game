@@ -116,7 +116,7 @@ fn get_noise_value(
     // these ⭐ magic numbers ⭐ have been hand crafted to perfection
     // don't touch them pls
     // TODO: Figure out what these magic numbers do lol
-    #[allow(clippy::cast_possible_truncation)]
+    #[allow(clippy::cast_possible_truncation)] // it doesnt truncate (even if it did that'd be ok)
     if n <= (u16::MAX as f64 / 2.5) as u16 {
         n / 2
     } else {
