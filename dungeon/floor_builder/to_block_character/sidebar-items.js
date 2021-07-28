@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["_print_vec_2d","Returns the supplied [`Vec<T>`] as a [`String`], using `T`’s [`ToAsciiCharacter`] implementation."]],"trait":[["ToAsciiCharacter","Represents a type that can be ‘pretty-printed’ using ascii characters."]]});

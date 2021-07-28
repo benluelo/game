@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["key_press_handling","Collects all the keys that are pressed and maps them to how long they have been pressed."],["system",""]],"struct":[["KeyPressHandling","[`SystemLabel`] for [`key_press_handling`]."],["KeyPressTime","Contains all the keys that are currently pressed and how long they have been pressed."]]});

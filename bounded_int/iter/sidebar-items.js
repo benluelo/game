@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["BoundedIntRange","A range between two [`BoundedInt`]s, inclusive at the start and exclusive at the end."],["BoundedIntRangeInclusive","A range between two [`BoundedInt`]s, inclusive on both ends."]]});

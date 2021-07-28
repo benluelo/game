@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Filled","A ‘resting’ state for the floor builder. All of the data to be drawn has been, and it can techincally be completed as is."]]});

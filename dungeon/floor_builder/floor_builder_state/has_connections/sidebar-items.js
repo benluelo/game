@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["HasConnections","State that contains the borders and connections between them."]]});

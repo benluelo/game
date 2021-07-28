@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["BoundedIntError","Error returned when trying to convert an [`i32`] to a [`BoundedInt`]."]],"mod":[["iter","Contains the [`Iterator`] implementations for the range types."],["ops","Contains the various [`std::ops`] trait implementations for [`BoundedInt`]."]],"struct":[["BoundedInt","An integer bound between two points, inclusive on both ends."]]});

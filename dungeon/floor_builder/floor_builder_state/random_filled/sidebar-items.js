@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["RandomFilled","A builder that has been filled with the original random ‘seed’ for the cellular automata cave creation."]]});

@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["frontend"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/ops/index/trait.Index.html\" title=\"trait core::ops::index::Index\">Index</a>&lt;<a class=\"enum\" href=\"dungeon/dungeon_tile/enum.DungeonTile.html\" title=\"enum dungeon::dungeon_tile::DungeonTile\">DungeonTile</a>&gt; for <a class=\"struct\" href=\"frontend/struct.Materials.html\" title=\"struct frontend::Materials\">Materials</a>","synthetic":false,"types":["frontend::Materials"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

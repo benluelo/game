@@ -1,0 +1,1 @@
+initSidebarItems({"trait":[["PointIndex","A 1-dimensional type representing a 2-dimensional grid, indexable by a [`Point`]."]]});

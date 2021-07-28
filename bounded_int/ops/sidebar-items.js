@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["BoundedIntOverflowError","Error returned when an operation would make the [`BoundedInt]` overflow it’s bounds."],["BoundedIntUnderflowError","Error returned when an operation would make the [`BoundedInt]` underflow it’s bounds."]]});

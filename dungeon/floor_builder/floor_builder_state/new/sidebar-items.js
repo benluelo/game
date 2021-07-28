@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["New","The initial state of the floor builder. Entry point to the state machine."]]});

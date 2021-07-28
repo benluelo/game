@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["DungeonTile","The various things a tile can be in a dungeon floor."]]});

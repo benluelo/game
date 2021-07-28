@@ -1,0 +1,1 @@
+window.ALL_CRATES = ["bounded_int","dungeon","frontend","test_bin"];

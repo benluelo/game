@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["ConnectionPathLength","Different lengths of paths."]],"struct":[["ConnectionPath","A connection between two borders with a path drawn between them."]]});

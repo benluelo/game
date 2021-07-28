@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Border","A border of points around a cave in a floor."],["BorderId","A unique, opaque ID assigned to each border in a floor."]]});

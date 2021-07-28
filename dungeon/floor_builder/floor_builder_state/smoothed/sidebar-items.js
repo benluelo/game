@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Smoothed","A [`FloorBuilder`] that has run the cellular automata on it’s map; all the rough edges of the caves have been smoothed out."]]});

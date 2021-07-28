@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["BuildConnectionIterations","How many iterations there should be when generating the connections between the caves."]],"struct":[["HasBorders","State that contains the borders around all of the disjointed caves in the floor."]]});

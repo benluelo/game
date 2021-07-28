@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["create_billow","Creates a [`Billow`] using some magic numbers that have been fine tuned to work well."],["get_noise_value","Gets the noise value for the provided billow at the row and column specified."]],"struct":[["Blank","A blank floor builder, with all values in the floor map and the noise map set to their default."]]});

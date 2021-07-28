@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["HasSecretPassages","State for the builder right after the secret passages have been placed."]]});

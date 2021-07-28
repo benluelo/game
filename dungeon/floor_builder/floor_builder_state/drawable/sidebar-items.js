@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Drawable","A [`FloorBuilder`] that has data to be written to it’s internal map."]]});
