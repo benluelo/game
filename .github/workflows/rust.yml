@@ -18,7 +18,7 @@ jobs:
 
       # https://github.com/bevyengine/bevy/blob/main/docs/linux_dependencies.md
       - name: Install bevy dependenncies
-        run: sudo apt-get install g++ pkg-config libx11-dev libasound2-dev libudev-dev
+        run: apt-get update && sudo apt-get install g++ pkg-config libx11-dev libasound2-dev libudev-dev
 
       - name: Build
         run: cargo build --verbose
