@@ -16,8 +16,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      # https://github.com/bevyengine/bevy/blob/main/docs/linux_dependencies.md
       - name: Install bevy dependenncies
-        run: sudo apt-get install libasound2-dev
+        run: sudo apt-get install g++ pkg-config libx11-dev libasound2-dev libudev-dev
 
       - name: Build
         run: cargo build --verbose
