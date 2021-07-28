@@ -18,7 +18,7 @@ impl<const LOW: i32, const HIGH: i32> Add for BoundedInt<{ LOW }, { HIGH }> {
                 overflowed_by: (self.0 + rhs.0) - HIGH,
             })
         } else {
-            Ok(BoundedInt(self.0 + rhs.0))
+            Ok(Self(self.0 + rhs.0))
         }
     }
 }
@@ -33,7 +33,7 @@ impl<const LOW: i32, const HIGH: i32> Add<u16> for BoundedInt<{ LOW }, { HIGH }>
                 overflowed_by: (self.0 + rhs) - HIGH,
             })
         } else {
-            Ok(BoundedInt(self.0 + rhs))
+            Ok(Self(self.0 + rhs))
         }
     }
 }
@@ -55,7 +55,7 @@ impl<const LOW: i32, const HIGH: i32> Sub for BoundedInt<{ LOW }, { HIGH }> {
                 underflowed_by: (self.0 - rhs.0) - HIGH,
             })
         } else {
-            Ok(BoundedInt(self.0 - rhs.0))
+            Ok(Self(self.0 - rhs.0))
         }
     }
 }
@@ -70,7 +70,7 @@ impl<const LOW: i32, const HIGH: i32> Sub<u16> for BoundedInt<{ LOW }, { HIGH }>
                 underflowed_by: (self.0 - rhs) - HIGH,
             })
         } else {
-            Ok(BoundedInt(self.0 - rhs))
+            Ok(Self(self.0 - rhs))
         }
     }
 }

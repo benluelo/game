@@ -7,13 +7,13 @@
 //! to smaller than, say, an [`i16`], or may not be enough if you need a number
 //! larger than an [`i32`] can hold.
 
-use crate::iter::{BoundedIntRange, BoundedIntRangeInclusive};
+pub use crate::iter::{BoundedIntRange, BoundedIntRangeInclusive};
 use serde::{Deserialize, Serialize};
 use std::convert::{TryFrom, TryInto};
 
 /// Contains the [`Iterator`] implementations for the range types.
 pub mod iter;
-/// Contains the various [`std::ops`] traits.
+/// Contains the various [`std::ops`] trait implementations for [`BoundedInt`].
 pub mod ops;
 
 /// An integer bound between two points, inclusive on both ends.
@@ -28,14 +28,33 @@ pub enum BoundedIntError {
     /// The number was too high for the bounds.
     ///
     /// Contains the value that was too high.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use bounded_int::{BoundedInt, BoundedIntError};
+    ///
+    /// let too_high = BoundedInt::<0, 10>::new(15);
+    ///
+    /// assert_eq!(too_high, Err(BoundedIntError::TooHigh(15)));
+    ///```
     TooHigh(i32),
+
     /// The number was too low for the bounds.
     ///
     /// Contains the value that was too low.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use bounded_int::{BoundedInt, BoundedIntError};
+    ///
+    /// let too_low = BoundedInt::<20, 30>::new(15);
+    ///
+    /// assert_eq!(too_low, Err(BoundedIntError::TooLow(15)));
+    ///```
     TooLow(i32),
 }
 
-// TODO: Move assertions to where clause once const_evaluatable_checked is
+// TODO: Move assertions to where clause once `const_evaluatable_checked` is
 // stabilized
 impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     /// The lower bounds of the `BoundedInt`, inclusive.
@@ -44,6 +63,15 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     pub const HIGH: i32 = HIGH;
 
     /// Returns the input as a [`BoundedInt`], clamped at the bounds.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use bounded_int::{BoundedInt, BoundedIntError};
+    ///
+    /// let clamped = BoundedInt::<20, 30>::new_clamped(15);
+    ///
+    /// assert_eq!(clamped, BoundedInt::<20, 30>::new(20).unwrap());
+    ///```
     #[must_use = "returned value will be immediately dropped if not used"]
     pub fn new_clamped(n: i32) -> Self {
         assert!(
@@ -52,7 +80,7 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
             LOW,
             HIGH
         );
-        BoundedInt(n.min(Self::HIGH).max(Self::LOW))
+        Self(n.min(Self::HIGH).max(Self::LOW))
     }
 
     /// Attempts to create a new [`BoundedInt`] with the provided value.
@@ -100,7 +128,6 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     ///     ]
     /// );
     /// ```
-    #[must_use = "range will do nothing unless iterated over"]
     pub const fn range_to(self, to: Self) -> BoundedIntRange<{ LOW }, { HIGH }> {
         BoundedIntRange {
             end: to,
@@ -130,7 +157,6 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     ///     ]
     /// );
     /// ```
-    #[must_use = "range will do nothing unless iterated over"]
     pub const fn range_from(self, from: Self) -> BoundedIntRange<{ LOW }, { HIGH }> {
         BoundedIntRange {
             end: self,
@@ -162,7 +188,6 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     ///     ]
     /// );
     /// ```
-    #[must_use = "range will do nothing unless iterated over"]
     pub const fn range_to_inclusive(self, to: Self) -> BoundedIntRangeInclusive<{ LOW }, { HIGH }> {
         BoundedIntRangeInclusive {
             end: to,
@@ -195,7 +220,6 @@ impl<const LOW: i32, const HIGH: i32> BoundedInt<{ LOW }, { HIGH }> {
     ///     ]
     /// );
     /// ```
-    #[must_use = "range will do nothing unless iterated over"]
     pub const fn range_from_inclusive(
         self,
         from: Self,

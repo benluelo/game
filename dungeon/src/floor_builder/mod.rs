@@ -21,17 +21,17 @@ mod floor_builder_state;
 /// See the type-level documentation for more information.
 pub(crate) mod to_block_character;
 
-/// The minimum dimensions a [`Floor`][crate::Floor] can have.
+/// The minimum dimensions a [`Floor`](crate::Floor) can have.
 pub const MIN_FLOOR_SIZE: i32 = 10;
 
-/// The maximum dimensions a [`Floor`][crate::Floor] can have.
+/// The maximum dimensions a [`Floor`](crate::Floor) can have.
 pub const MAX_FLOOR_SIZE: i32 = 200;
 
 /// The percent chance of a wall being placed during the initial noise
 /// generation.
 const RANDOM_FILL_WALL_PERCENT_CHANCE: u8 = 52;
 
-/// Builder struct for a [`Floor`][crate::Floor].
+/// Builder struct for a [`Floor`](crate::Floor).
 ///
 /// See <http://roguebasin.roguelikedevelopment.org/index.php?title=Cellular_Automata_Method_for_Generating_Random_Cave-Like_Levels>
 #[derive(Debug)]

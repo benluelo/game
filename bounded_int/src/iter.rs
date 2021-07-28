@@ -2,6 +2,7 @@ use crate::BoundedInt;
 use std::{cmp::Ordering, convert::TryInto};
 
 /// A range between two [`BoundedInt`]s, inclusive on both ends.
+#[must_use = "range will do nothing unless iterated over"]
 pub struct BoundedIntRangeInclusive<const LOW: i32, const HIGH: i32> {
     // REVIEW: Should the ranges keep track of their start points?
     // start: BoundedInt<{ LOW }, { HIGH }>,
@@ -41,6 +42,7 @@ impl<const LOW: i32, const HIGH: i32> Iterator for BoundedIntRangeInclusive<{ LO
 }
 /// A range between two [`BoundedInt`]s, inclusive at the start and exclusive at
 /// the end.
+#[must_use = "range will do nothing unless iterated over"]
 pub struct BoundedIntRange<const LOW: i32, const HIGH: i32> {
     // REVIEW: Should the ranges keep track of their start points?
     // start: BoundedInt<{ LOW }, { HIGH }>,

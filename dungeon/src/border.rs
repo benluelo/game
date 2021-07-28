@@ -25,7 +25,7 @@ pub(crate) struct BorderId(usize);
 
 impl BorderId {
     /// Creates a new [`BorderId`] with the given id.
-    pub fn new(id: usize) -> Self {
+    pub const fn new(id: usize) -> Self {
         Self(id)
     }
 }
