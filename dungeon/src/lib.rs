@@ -295,19 +295,9 @@ mod test_dungeon {
             false,
         );
 
-        let contents = rmp_serde::to_vec(&dungeon).unwrap();
-
-        // dbg!(contents.len() * mem::size_of::<u8>());
-
-        fs::write("./test.mp", &contents).unwrap();
-
         let contents_json = serde_json::to_string(&dungeon).unwrap();
 
-        // dbg!(contents_json.len() * mem::size_of::<u8>());
-
         fs::write("./test.json", contents_json).unwrap();
-
-        rmp_serde::from_read_ref::<_, Dungeon>(&contents).unwrap();
     }
 
     // #[test]
