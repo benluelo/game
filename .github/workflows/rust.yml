@@ -20,6 +20,14 @@ jobs:
       - name: Install bevy dependenncies
         run: sudo apt-get update && sudo apt-get install g++ pkg-config libx11-dev libasound2-dev libudev-dev
 
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          override: true
+          components: rust-docs
+
       - name: Build
         run: cargo build --verbose --release
 
