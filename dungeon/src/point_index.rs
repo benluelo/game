@@ -1,4 +1,11 @@
+use std::convert::TryInto;
+
 use bounded_int::BoundedInt;
+
+use crate::{
+    floor_builder::{MAX_FLOOR_SIZE, MIN_FLOOR_SIZE},
+    Column, Row,
+};
 
 use super::Point;
 
@@ -176,6 +183,26 @@ impl<T> PointIndex for [T] {
         &mut self[((point.row.get().as_unbounded() * width.as_unbounded())
             + point.column.get().as_unbounded()) as usize]
     }
+}
+
+// TODO: Where should this function go?
+/// Returns an iterator over all of the [`Point`]s contained in a map of the specified `width` and `height`.
+pub(crate) fn iter_points(
+    width: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
+    height: BoundedInt<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>,
+) -> impl Iterator<Item = Point> {
+    width
+        .expand_lower::<0>()
+        .range_from(0.try_into().unwrap())
+        .flat_map(move |column| {
+            height
+                .expand_lower::<0>()
+                .range_from(0.try_into().unwrap())
+                .map(move |row| Point {
+                    column: Column::new(column),
+                    row: Row::new(row),
+                })
+        })
 }
 
 #[cfg(test)]

@@ -22,18 +22,21 @@ pub struct Point {
 
 /// Wrapper type around a [`BoundedInt`] that represents the row position of a
 /// [`Point`]. Note that the [`BoundedInt`] is bound on the maximum and minimum
-/// that a point can be, not the floor size itself.
+/// that a point can be, not the floor size itself, as the floor size is decided
+/// at runtime.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Row(pub(super) BoundedInt<0, { MAX_FLOOR_SIZE }>);
 
 /// Wrapper type around a [`BoundedInt`] that represents the column position of
 /// a [`Point`]. Note that the [`BoundedInt`] is bound on the maximum and
-/// minimum that a point can be, not the floor size itself.
+/// minimum that a point can be, not the floor size itself, as the floor size is
+/// decided at runtime.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Column(pub(super) BoundedInt<0, { MAX_FLOOR_SIZE }>);
 
 impl Point {
     /// Returns the euclidean distance between two points.
+    #[allow(dead_code)]
     fn distance(self, to: Point) -> f64 {
         (((self.row.get().as_unbounded() - to.row.get().as_unbounded()).pow(2)
             + (self.column.get().as_unbounded() - to.column.get().as_unbounded()).pow(2))

@@ -1,3 +1,4 @@
+use crate::point_index::iter_points;
 #[allow(clippy::wildcard_imports)]
 use crate::{
     dungeon_tile::DungeonTile,
@@ -89,15 +90,9 @@ impl<S: Smoothable> FloorBuilder<S> {
         create_new_walls: fn(usize) -> bool,
     ) -> FloorBuilder<Smoothed> {
         for r in 0..repeat {
-            for column in self.width.expand_lower().range_from(0.try_into().unwrap()) {
-                for row in self.height.expand_lower().range_from(0.try_into().unwrap()) {
-                    let point = Point {
-                        column: Column::new(column),
-                        row: Row::new(row),
-                    };
-                    *self.map.at_mut(point, self.width) =
-                        self.place_wall_logic(point, create_new_walls(r));
-                }
+            for point in iter_points(self.width, self.height) {
+                *self.map.at_mut(point, self.width) =
+                    self.place_wall_logic(point, create_new_walls(r));
             }
 
             self.frame_from_current_state(100);
@@ -376,14 +371,8 @@ mod test_super {
 
         let mut new_vec = vec![false; (width.as_unbounded() * height.as_unbounded()) as usize];
 
-        for column in width.expand_lower().range_from(0.try_into().unwrap()) {
-            for row in height.expand_lower().range_from(0.try_into().unwrap()) {
-                let point = Point {
-                    column: Column::new(column),
-                    row: Row::new(row),
-                };
-                *new_vec.at_mut(point, width) = blank_floor.is_out_of_bounds(point);
-            }
+        for point in iter_points(width, height) {
+            *new_vec.at_mut(point, width) = blank_floor.is_out_of_bounds(point);
         }
 
         println!("{}", _print_vec_2d(&new_vec, width));
@@ -396,15 +385,8 @@ mod test_super {
         let blank_floor = FloorBuilder::<Blank>::blank(FloorId(0), width, height, false);
 
         let mut new_vec = vec![false; (width.as_unbounded() * height.as_unbounded()) as usize];
-
-        for column in width.expand_lower().range_from(0.try_into().unwrap()) {
-            for row in height.expand_lower().range_from(0.try_into().unwrap()) {
-                let point = Point {
-                    column: Column::new(column),
-                    row: Row::new(row),
-                };
-                *new_vec.at_mut(point, width) = blank_floor.is_out_of_bounds(point);
-            }
+        for point in iter_points(width, height) {
+            *new_vec.at_mut(point, width) = blank_floor.is_out_of_bounds(point);
         }
 
         println!("{}", _print_vec_2d(&new_vec, width));

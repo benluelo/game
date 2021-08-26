@@ -1,7 +1,4 @@
-use std::{
-    convert::TryInto,
-    ops::{Add, Mul},
-};
+use std::ops::{Add, Mul};
 
 use bounded_int::BoundedInt;
 use noise::{Billow, MultiFractal, NoiseFn, Seedable};
@@ -12,8 +9,8 @@ use crate::{
         floor_builder_state::random_filled::RandomFilled, MAX_FLOOR_SIZE, MIN_FLOOR_SIZE,
         RANDOM_FILL_WALL_PERCENT_CHANCE,
     },
-    point_index::PointIndex,
-    Column, DungeonTile, FloorBuilder, Point, Row,
+    point_index::{iter_points, PointIndex},
+    DungeonTile, FloorBuilder,
 };
 
 use super::FloorBuilderState;
@@ -35,37 +32,27 @@ impl FloorBuilder<Blank> {
         let mut noise = create_billow(&mut rng);
 
         // build initial maps (walls and noise)
-        for column in self
-            .width
-            .expand_lower::<0>()
-            .range_from(0.try_into().unwrap())
-        {
-            for row in self
-                .height
-                .expand_lower::<0>()
-                .range_from(0.try_into().unwrap())
-            {
-                let point = Point {
-                    column: Column::new(column),
-                    row: Row::new(row),
-                };
+        for point in iter_points(self.width, self.height) {
+            *self.noise_map.at_mut(point, self.width) = get_noise_value(
+                &mut noise,
+                point.column.get(),
+                point.row.get(),
+                self.height,
+                self.width,
+            );
 
-                *self.noise_map.at_mut(point, self.width) =
-                    get_noise_value(&mut noise, column, row, self.height, self.width);
-
-                if self.is_out_of_bounds(point) {
-                    *self.map.at_mut(point, self.width) = DungeonTile::Wall;
-                    continue;
-                }
-
-                // make a wall some percent of the time
-                *self.map.at_mut(point, self.width) =
-                    if rng.gen_range(0..=100) <= RANDOM_FILL_WALL_PERCENT_CHANCE {
-                        DungeonTile::Wall
-                    } else {
-                        DungeonTile::Empty
-                    }
+            if self.is_out_of_bounds(point) {
+                *self.map.at_mut(point, self.width) = DungeonTile::Wall;
+                continue;
             }
+
+            // make a wall some percent of the time
+            *self.map.at_mut(point, self.width) =
+                if rng.gen_range(0..=100) <= RANDOM_FILL_WALL_PERCENT_CHANCE {
+                    DungeonTile::Wall
+                } else {
+                    DungeonTile::Empty
+                }
         }
 
         // original noisy walls map
@@ -137,20 +124,9 @@ fn create_billow(rng: &mut impl rand::Rng) -> Billow {
         .set_seed(rng.gen())
 }
 
-// fn _shift_range<I: Integer + Copy>(
-//     old_value: I,
-//     old_min: I,
-//     old_max: I,
-//     new_min: I,
-//     new_max: I,
-// ) -> I {
-//     let new_value = ((old_value - old_min) / (old_max - old_min)) * (new_max
-// - new_min) + new_min;     new_value
-// }
-
 #[cfg(test)]
 mod test_noise {
-    use std::path::Path;
+    use std::{convert::TryInto, path::Path};
 
     use itertools::Itertools;
 
@@ -166,28 +142,18 @@ mod test_noise {
 
         let mut noise = create_billow(&mut rng);
 
-        for column in BoundedInt::<0, MAX_FLOOR_SIZE>::new(WIDTH)
-            .unwrap()
-            .range_from(0.try_into().unwrap())
-        {
-            for row in BoundedInt::<0, MAX_FLOOR_SIZE>::new(HEIGHT)
-                .unwrap()
-                .range_from(0.try_into().unwrap())
-            {
-                let point = Point {
-                    column: Column::new(column),
-                    row: Row::new(row),
-                };
-
-                let n = get_noise_value(
-                    &mut noise,
-                    column,
-                    row,
-                    HEIGHT.try_into().unwrap(),
-                    WIDTH.try_into().unwrap(),
-                );
-                *noise_map.at_mut(point, BoundedInt::<0, MAX_FLOOR_SIZE>::new(WIDTH).unwrap()) = n;
-            }
+        for point in iter_points(
+            BoundedInt::<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>::new(WIDTH).unwrap(),
+            BoundedInt::<MIN_FLOOR_SIZE, MAX_FLOOR_SIZE>::new(HEIGHT).unwrap(),
+        ) {
+            let n = get_noise_value(
+                &mut noise,
+                point.column.get(),
+                point.row.get(),
+                HEIGHT.try_into().unwrap(),
+                WIDTH.try_into().unwrap(),
+            );
+            *noise_map.at_mut(point, BoundedInt::<0, MAX_FLOOR_SIZE>::new(WIDTH).unwrap()) = n;
         }
 
         // let pixels = noise_map

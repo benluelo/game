@@ -1,18 +1,13 @@
 use bevy::{
-    ecs::schedule::SystemDescriptor,
     prelude::*,
     utils::{StableHashMap, StableHashSet},
 };
 
 use num_traits::Zero;
 
-pub fn system() -> impl Into<SystemDescriptor> {
-    key_press_handling.system().label(KeyPressHandling)
-}
-
 /// [`SystemLabel`] for [`key_press_handling`].
 #[derive(SystemLabel, Debug, PartialEq, Eq, Clone, Hash)]
-pub struct KeyPressHandling;
+pub struct KeyPressHandlingLabel;
 
 /// Contains all the keys that are currently pressed and how long they have been
 /// pressed.
@@ -47,4 +42,16 @@ pub fn key_press_handling(
         .chain(newly_pressed_keys)
         .collect();
     // dbg!(&*key_press_time);
+}
+
+pub struct KeyPressHandlingPlugin;
+
+impl Plugin for KeyPressHandlingPlugin {
+    fn build(&self, app: &mut AppBuilder) {
+        app.insert_resource(KeyPressTime(Default::default()))
+            .add_system_to_stage(
+                CoreStage::PreUpdate,
+                key_press_handling.system().label(KeyPressHandlingLabel),
+            );
+    }
 }

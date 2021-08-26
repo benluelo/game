@@ -8,8 +8,8 @@ use rand::prelude::SliceRandom;
 use crate::{
     border::{Border, BorderId},
     floor_builder::floor_builder_state::has_borders::{BuildConnectionIterations, HasBorders},
-    point_index::PointIndex,
-    Column, DungeonTile, FloorBuilder, Point, Row,
+    point_index::{iter_points, PointIndex},
+    DungeonTile, FloorBuilder,
 };
 
 use super::{has_secret_connections::HasSecretPassages, FloorBuilderState};
@@ -37,52 +37,47 @@ impl FloorBuilder<Smoothed> {
         let mut borders = vec![];
 
         // loop through the entire map
-        for column in self.width.expand_lower().range_from(0.try_into().unwrap()) {
-            'rows: for row in self.height.expand_lower().range_from(0.try_into().unwrap()) {
-                let point = Point {
-                    column: Column::new(column),
-                    row: Row::new(row),
-                };
-                // if the point has already been visited (by either the main loop or the cave
-                // searching) then continue looping through the map
-                if *already_visited.at(point, self.width) {
-                    continue 'rows;
-                }
-                // otherwise, mark the point as visited
-                *already_visited.at_mut(point, self.width) = true;
+        for point in iter_points(self.width, self.height) {
+            // if the point has already been visited (by either the main loop or the cave
+            // searching) then continue looping through the map
+            if *already_visited.at(point, self.width) {
+                continue;
+            }
+            // otherwise, mark the point as visited
+            *already_visited.at_mut(point, self.width) = true;
 
-                // if there's an empty space at the point, BFS to find the border of the cave
-                // (no diagonals)
-                if self.map.at(point, self.width).is_empty() {
-                    let mut border = HashSet::new();
+            // if there's an empty space at the point, BFS to find the border of the cave
+            // (no diagonals)
+            if self.map.at(point, self.width).is_empty() {
+                let mut border = HashSet::new();
 
-                    let mut queue = self.get_legal_neighbors(point).collect::<VecDeque<_>>();
+                let mut queue = self.get_legal_neighbors(point).collect::<VecDeque<_>>();
 
-                    loop {
-                        if let Some(point) = queue.pop_front() {
-                            // if point is empty, mark it as visited and then add all of it's
-                            // legal neighbors to the queue
-                            if self.map.at(point, self.width).is_empty() {
-                                if *already_visited.at(point, self.width) {
-                                    continue;
-                                }
-                                *already_visited.at_mut(point, self.width) = true;
-                                self.get_legal_neighbors(point)
-                                    .for_each(|p| queue.push_back(p));
-                            } else {
-                                border.insert(point);
+                'label: loop {
+                    if let Some(point) = queue.pop_front() {
+                        // if point is empty, mark it as visited and then add all of it's
+                        // legal neighbors to the queue
+                        if self.map.at(point, self.width).is_empty() {
+                            if *already_visited.at(point, self.width) {
+                                continue;
                             }
+                            *already_visited.at_mut(point, self.width) = true;
+                            self.get_legal_neighbors(point)
+                                .for_each(|p| queue.push_back(p));
                         } else {
-                            if !border.is_empty() {
-                                // add the found cave to the collection of all caves
-                                borders.push(border);
-                            }
-                            continue 'rows;
+                            border.insert(point);
                         }
+                    } else {
+                        if !border.is_empty() {
+                            // add the found cave to the collection of all caves
+                            borders.push(border);
+                        }
+                        break 'label;
                     }
                 }
             }
         }
+
         let mut vec_of_borders = borders
             .iter()
             .enumerate()
