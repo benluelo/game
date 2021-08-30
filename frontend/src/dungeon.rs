@@ -1,6 +1,6 @@
 use std::{convert::TryInto, num::NonZeroU16, ops::Add};
 
-use bevy::{prelude::*, render::camera::Camera};
+use bevy::{app::Events, prelude::*, render::camera::Camera};
 use dungeon::{Dungeon, DungeonTile, DungeonType, Point};
 
 use crate::{
@@ -25,6 +25,11 @@ pub struct ExitFloor;
 
 pub struct DungeonPlugin;
 
+pub enum FloorChangedEvent {
+    Up,
+    Down,
+}
+
 impl Plugin for DungeonPlugin {
     fn build(&self, app: &mut bevy::prelude::AppBuilder) {
         app.insert_resource(Dungeon::new(
@@ -42,6 +47,7 @@ impl Plugin for DungeonPlugin {
             StageLabel::SpawnPlayerAndBoard,
             SystemStage::single(spawn_player_and_board.system()),
         )
+        .add_event::<FloorChangedEvent>()
         // .add_startup_system(spawn_player_and_board.system().after("setup"))
         .add_system_set(
             SystemSet::new()
@@ -115,21 +121,25 @@ fn spawn_player_and_board(
 }
 
 /// Moves the player between squares smoothly.
+///
+/// Will also progress the player to the next floor upon reaching the exit.
+#[allow(clippy::too_many_arguments)]
 fn smooth_player_movement(
     time: Res<Time>,
     dungeon: Res<Dungeon>,
     player_direction: Query<&PlayerDirection, With<Player>>,
+    mut floor_change_event_writer: EventWriter<FloorChangedEvent>,
     mut current_floor: ResMut<CurrentFloor>,
     mut player_state: Query<&mut PlayerState, With<Player>>,
     mut player_position: Query<&mut Position, With<Player>>,
     mut player_transform: Query<&mut Transform, With<Player>>,
 ) {
     let floor = dungeon.floors.get(current_floor.0.get() as usize).unwrap();
-    let mut position = player_position.single_mut().unwrap();
+    let mut player_position = player_position.single_mut().unwrap();
 
-    let mut transform = player_transform.single_mut().unwrap();
+    let mut player_transform = player_transform.single_mut().unwrap();
 
-    transform.rotation = player_direction.single().unwrap().to_rotation();
+    player_transform.rotation = player_direction.single().unwrap().to_rotation();
 
     let mut done_moving = false;
     // dbg!(&*player_state);
@@ -142,18 +152,19 @@ fn smooth_player_movement(
         } => {
             timer.tick(time.delta());
 
-            transform.translation = point_to_transform(position.0, floor, TILE_Z_INDEX)
-                .translation
-                .lerp(
-                    point_to_transform(destination, floor, TILE_Z_INDEX).translation,
-                    timer.percent(),
-                );
+            player_transform.translation =
+                point_to_transform(player_position.0, floor, TILE_Z_INDEX)
+                    .translation
+                    .lerp(
+                        point_to_transform(destination, floor, TILE_Z_INDEX).translation,
+                        timer.percent(),
+                    );
 
             if timer.finished() {
                 done_moving = true;
-                position.0 = destination;
+                player_position.0 = destination;
 
-                if floor.at(position.0).is_exit() {
+                if floor.at(player_position.0).is_exit() {
                     current_floor.0 = NonZeroU16::new(current_floor.0.get().add(1)).unwrap()
                 }
             }
@@ -163,6 +174,20 @@ fn smooth_player_movement(
 
     if done_moving {
         *player_state = PlayerState::Still;
+        match dungeon.floors[(*current_floor).0.get() as usize].at(player_position.0) {
+            DungeonTile::Entrance => floor_change_event_writer.send(FloorChangedEvent::Up),
+            DungeonTile::Exit => floor_change_event_writer.send(FloorChangedEvent::Down),
+            _ => {}
+        }
+        // if dungeon
+        //     .floors
+        //     .get((*current_floor).0.get() as usize + 1)
+        //     .is_some()
+        // {
+        //     *current_floor = CurrentFloor(NonZeroU16::new(current_floor.0.get()).unwrap());
+        // } else {
+        //     // done? idk lol
+        // }
     }
 }
 
@@ -176,7 +201,10 @@ fn camera_player_tracking(
         Query<&mut Transform, With<Camera>>,
     )>,
 ) {
-    set.q1_mut().single_mut().unwrap().translation = set.q0().single().unwrap().translation;
+    let player = set.q0().single().unwrap().translation;
+    for mut camera in set.q1_mut().iter_mut() {
+        camera.translation = player;
+    }
 }
 
 /// Moves the player by changing it's internal [`dungeon::Point`] according to
