@@ -1,6 +1,10 @@
-use std::{convert::TryInto, num::NonZeroU16, ops::Add};
+use std::{
+    convert::TryInto,
+    num::NonZeroU16,
+    ops::{Add, Sub},
+};
 
-use bevy::{app::Events, prelude::*, render::camera::Camera};
+use bevy::{prelude::*, render::camera::Camera};
 use dungeon::{Dungeon, DungeonTile, DungeonType, Point};
 
 use crate::{
@@ -12,26 +16,44 @@ use crate::{
 };
 
 #[derive(StageLabel, SystemLabel, Clone, Copy, Hash, Debug, PartialEq, Eq)]
-enum StageLabel {
+enum DungeonPluginStageLabel {
     SpawnPlayerAndBoard,
+    PlayerDirectionHandling,
     PlayerMovementInputHandling,
     SmoothPlayerMovement,
     CameraPlayerTracking,
 }
 
-pub struct CurrentFloor(pub NonZeroU16);
+#[derive(Debug, Clone)]
+pub struct CurrentFloor(u16);
 
-pub struct ExitFloor;
+impl CurrentFloor {
+    pub fn as_usize(&self) -> usize {
+        self.0 as usize
+    }
+}
 
 pub struct DungeonPlugin;
 
+#[derive(Debug, Clone)]
 pub enum FloorChangedEvent {
-    Up,
-    Down,
+    Up { previous_position: Position },
+    Down { previous_position: Position },
+}
+
+impl FloorChangedEvent {
+    fn _previous_position(&self) -> Position {
+        match self {
+            FloorChangedEvent::Up { previous_position } => *previous_position,
+            FloorChangedEvent::Down { previous_position } => *previous_position,
+        }
+    }
 }
 
 impl Plugin for DungeonPlugin {
     fn build(&self, app: &mut bevy::prelude::AppBuilder) {
+        use DungeonPluginStageLabel::*;
+
         app.insert_resource(Dungeon::new(
             80_i32.try_into().unwrap(),
             50_i32.try_into().unwrap(),
@@ -39,12 +61,11 @@ impl Plugin for DungeonPlugin {
             DungeonType::Cave,
             false,
         ))
-        .add_event::<ExitFloor>()
-        .insert_resource(CurrentFloor(NonZeroU16::new(1).unwrap()))
+        .insert_resource(CurrentFloor(0))
         // .insert_resource(Msaa { samples: 4 })
         .add_startup_stage_after(
             StartupStage::Startup,
-            StageLabel::SpawnPlayerAndBoard,
+            DungeonPluginStageLabel::SpawnPlayerAndBoard,
             SystemStage::single(spawn_player_and_board.system()),
         )
         .add_event::<FloorChangedEvent>()
@@ -54,22 +75,30 @@ impl Plugin for DungeonPlugin {
                 .with_system(
                     player_movement_input_handling
                         .system()
-                        .label(StageLabel::PlayerMovementInputHandling),
+                        .label(PlayerMovementInputHandling),
+                )
+                .with_system(
+                    player_direction_handling
+                        .system()
+                        .label(PlayerDirectionHandling)
+                        .after(PlayerMovementInputHandling),
                 )
                 .with_system(
                     smooth_player_movement
                         .system()
-                        .label(StageLabel::SmoothPlayerMovement)
-                        .after(StageLabel::PlayerMovementInputHandling),
+                        .label(SmoothPlayerMovement)
+                        .after(PlayerDirectionHandling),
                 )
                 .with_system(
                     camera_player_tracking
                         .exclusive_system()
                         .at_end()
-                        .label(StageLabel::CameraPlayerTracking)
-                        .after(StageLabel::SmoothPlayerMovement),
+                        .label(CameraPlayerTracking)
+                        .after(SmoothPlayerMovement),
                 ),
-        );
+        )
+        .add_system(floor_changed_event_listener.system())
+        .add_system(sync_dungeon_data.system().label("sync_dungeon_data"));
         // .add_system_set_to_stage(
         //     CoreStage::PostUpdate,
         //     SystemSet::new()
@@ -85,13 +114,26 @@ impl Plugin for DungeonPlugin {
 //     }
 // }
 
+#[derive(Debug)]
 pub struct Tile {
     #[allow(dead_code)]
     tile_type: DungeonTile,
 }
 
 /// The internal position of something in the world.
+#[derive(Debug, Clone, Copy)]
 pub struct Position(Point);
+
+fn sync_dungeon_data(
+    current_floor: Res<CurrentFloor>,
+    mut dungeon: ResMut<Dungeon>,
+    changes: Query<(&Tile, &Position), Changed<Tile>>,
+) {
+    for (tile, position) in changes.iter() {
+        debug!(?tile.tile_type, "changed tile");
+        *dungeon.floors[current_floor.as_usize()].at_mut(position.0) = tile.tile_type
+    }
+}
 
 fn spawn_player_and_board(
     mut commands: Commands,
@@ -99,7 +141,7 @@ fn spawn_player_and_board(
     materials: Res<Materials>,
     current_floor: Res<CurrentFloor>,
 ) {
-    let floor = dungeon.floors.get(current_floor.0.get() as usize).unwrap();
+    let floor = dungeon.floors.get(current_floor.as_usize()).unwrap();
 
     for (point, tile) in floor.iter_points_and_tiles() {
         if matches!(tile, DungeonTile::Entrance) {
@@ -120,37 +162,42 @@ fn spawn_player_and_board(
     }
 }
 
+fn player_direction_handling(
+    mut player_transform: Query<&mut Transform, With<Player>>,
+    player_direction: Query<&PlayerDirection, With<Player>>,
+) {
+    let mut player_transform = player_transform.single_mut().unwrap();
+    player_transform.rotation = player_direction.single().unwrap().to_rotation();
+}
+
 /// Moves the player between squares smoothly.
 ///
-/// Will also progress the player to the next floor upon reaching the exit.
+/// Will also a `FloorChangedEvent` upon reaching the entrance or exit.
 #[allow(clippy::too_many_arguments)]
 fn smooth_player_movement(
     time: Res<Time>,
     dungeon: Res<Dungeon>,
-    player_direction: Query<&PlayerDirection, With<Player>>,
     mut floor_change_event_writer: EventWriter<FloorChangedEvent>,
-    mut current_floor: ResMut<CurrentFloor>,
+    current_floor: Res<CurrentFloor>,
     mut player_state: Query<&mut PlayerState, With<Player>>,
     mut player_position: Query<&mut Position, With<Player>>,
     mut player_transform: Query<&mut Transform, With<Player>>,
 ) {
-    let floor = dungeon.floors.get(current_floor.0.get() as usize).unwrap();
-    let mut player_position = player_position.single_mut().unwrap();
+    let mut mut_player_state = player_state.single_mut().unwrap();
 
-    let mut player_transform = player_transform.single_mut().unwrap();
+    // println!("{:?}", mut_player_state.clone());
 
-    player_transform.rotation = player_direction.single().unwrap().to_rotation();
-
-    let mut done_moving = false;
-    // dbg!(&*player_state);
-    let mut player_state = player_state.single_mut().unwrap();
-
-    match *player_state {
+    match *mut_player_state {
         PlayerState::Moving {
             destination,
             ref mut timer,
         } => {
             timer.tick(time.delta());
+
+            let floor = dungeon.floors.get(current_floor.as_usize()).unwrap();
+
+            let mut player_position = player_position.single_mut().unwrap();
+            let mut player_transform = player_transform.single_mut().unwrap();
 
             player_transform.translation =
                 point_to_transform(player_position.0, floor, TILE_Z_INDEX)
@@ -161,38 +208,66 @@ fn smooth_player_movement(
                     );
 
             if timer.finished() {
-                done_moving = true;
+                let previous_position = *player_position;
                 player_position.0 = destination;
-
-                if floor.at(player_position.0).is_exit() {
-                    current_floor.0 = NonZeroU16::new(current_floor.0.get().add(1)).unwrap()
+                *mut_player_state = PlayerState::Still;
+                match floor.at(player_position.0) {
+                    DungeonTile::Entrance => {
+                        println!("going up a floor, {:?}", *current_floor);
+                        floor_change_event_writer.send(FloorChangedEvent::Up { previous_position })
+                    }
+                    DungeonTile::Exit => {
+                        println!("going down a floor, {:?}", *current_floor);
+                        floor_change_event_writer
+                            .send(FloorChangedEvent::Down { previous_position })
+                    }
+                    _ => {}
                 }
             }
         }
-        PlayerState::Still => return,
+        PlayerState::Still => {}
     }
+}
 
-    if done_moving {
-        *player_state = PlayerState::Still;
-        match dungeon.floors[(*current_floor).0.get() as usize].at(player_position.0) {
-            DungeonTile::Entrance => floor_change_event_writer.send(FloorChangedEvent::Up),
-            DungeonTile::Exit => floor_change_event_writer.send(FloorChangedEvent::Down),
-            _ => {}
+fn floor_changed_event_listener(
+    dungeon: Res<Dungeon>,
+    mut current_floor: ResMut<CurrentFloor>,
+    mut event_listener: EventReader<FloorChangedEvent>,
+) {
+    // let floor = dungeon.floors.get(current_floor.as_usize()).unwrap();
+
+    for event in event_listener.iter() {
+        match event {
+            FloorChangedEvent::Up {
+                previous_position: _,
+            } => {
+                if dungeon
+                    .floors
+                    .get(current_floor.as_usize().sub(1))
+                    .is_some()
+                {
+                    current_floor.0 = current_floor.0.sub(1)
+                }
+            }
+            FloorChangedEvent::Down {
+                previous_position: _,
+            } => {
+                if dungeon
+                    .floors
+                    .get(current_floor.as_usize().add(1))
+                    .is_some()
+                {
+                    current_floor.0 = current_floor.0.add(1)
+                } else {
+                    // dungeon over
+                }
+            }
         }
-        // if dungeon
-        //     .floors
-        //     .get((*current_floor).0.get() as usize + 1)
-        //     .is_some()
-        // {
-        //     *current_floor = CurrentFloor(NonZeroU16::new(current_floor.0.get()).unwrap());
-        // } else {
-        //     // done? idk lol
-        // }
     }
 }
 
 /// makes the camera follow the player.
-/// TODO: when the player is in corners, make the camera stay in the same spot.
+/// TODO: when the player is in corners, make the camera stay in the same spot(?).
 /// NOTE: this will first require fixing how the tiles are drawn
 #[allow(clippy::type_complexity)]
 fn camera_player_tracking(
@@ -210,59 +285,54 @@ fn camera_player_tracking(
 /// Moves the player by changing it's internal [`dungeon::Point`] according to
 /// the input.
 fn player_movement_input_handling(
-    key_press_time: ResMut<KeyPressTime>,
+    key_press_time: Res<KeyPressTime>,
     dungeon: Res<Dungeon>,
     mut player_state: Query<&mut PlayerState, With<Player>>,
     player_position: Query<&Position, With<Player>>,
     mut player_direction: Query<&mut PlayerDirection, With<Player>>,
     current_floor: Res<CurrentFloor>,
 ) {
-    let floor = dungeon.floors.get(current_floor.0.get() as usize).unwrap();
+    let floor = dungeon.floors.get(current_floor.as_usize()).unwrap();
 
     let mut player_state = player_state.single_mut().unwrap();
+    let player_position = player_position.single().unwrap();
+    let mut player_direction = player_direction.single_mut().unwrap();
 
-    if let Ok(player_position) = player_position.single() {
-        if matches!(*player_state, PlayerState::Moving { .. }) {
-            return;
-        };
+    if matches!(*player_state, PlayerState::Moving { .. }) {
+        return;
+    };
 
-        let mut player_direction = player_direction.single_mut().unwrap();
-
-        if let Some((new_direction, &time_pressed)) = key_press_time
-            .0
-            .iter()
-            .filter_map(|(k, v)| match k {
-                KeyCode::Up => Some((PlayerDirection::Up, v)),
-                KeyCode::Down => Some((PlayerDirection::Down, v)),
-                KeyCode::Left => Some((PlayerDirection::Left, v)),
-                KeyCode::Right => Some((PlayerDirection::Right, v)),
-                _ => None,
-            })
-            .reduce(|a, b| if a.1 >= b.1 { a } else { b })
-        {
-            // tap to change direction
-            if time_pressed < PLAYER_MOVEMENT_DELAY_SECONDS && new_direction != *player_direction {
-                {
-                    *player_direction = new_direction;
-                    return;
-                }
-            }
-            // if tap is in the direction the player is already facing, move in that direction,
-            // or, if the key has been pressed for long enough, move in that direction
-            else if new_direction == *player_direction
-                || time_pressed >= PLAYER_MOVEMENT_DELAY_SECONDS
+    if let Some((new_direction, &time_pressed)) = key_press_time
+        .0
+        .iter()
+        .filter_map(|(k, v)| match k {
+            KeyCode::Up => Some((PlayerDirection::Up, v)),
+            KeyCode::Down => Some((PlayerDirection::Down, v)),
+            KeyCode::Left => Some((PlayerDirection::Left, v)),
+            KeyCode::Right => Some((PlayerDirection::Right, v)),
+            _ => None,
+        })
+        .reduce(|a, b| if a.1 >= b.1 { a } else { b })
+    {
+        // tap to change direction
+        if new_direction != *player_direction {
             {
                 *player_direction = new_direction;
-                *player_state = PlayerState::Moving {
-                    destination: match new_direction.try_move_to_point(&player_position.0, floor) {
-                        Some(p) => p,
-                        None => return,
-                    },
-                    timer: Timer::from_seconds(PLAYER_MOVING_TIME_SECONDS, false),
-                }
             }
-        } else {
-            return;
+        }
+        // if tap is in the direction the player is already facing, move in that direction,
+        else if new_direction == *player_direction
+            // or, if the key has been pressed for long enough, move in that direction
+                || time_pressed >= PLAYER_MOVEMENT_DELAY_SECONDS
+        {
+            *player_direction = new_direction;
+            *player_state = PlayerState::Moving {
+                destination: match new_direction.try_move_to_point(&player_position.0, floor) {
+                    Some(p) => p,
+                    None => return,
+                },
+                timer: Timer::from_seconds(PLAYER_MOVING_TIME_SECONDS, false),
+            }
         }
     }
 }

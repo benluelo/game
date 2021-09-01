@@ -5,7 +5,7 @@ use dungeon::{Floor, Point};
 
 pub struct Player;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum PlayerState {
     Moving { destination: Point, timer: Timer },
     Still,

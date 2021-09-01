@@ -1,5 +1,6 @@
 [workspace]
 members = ["bounded_int", "dungeon", "frontend"]
+default-members = ["frontend"]
 
 [profile.bench]
 debug = true
